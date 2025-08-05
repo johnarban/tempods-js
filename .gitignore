@@ -24,3 +24,4 @@ tsconfig.tsbuildinfo
 **/tests_output/**
 
 *.env
+.env
