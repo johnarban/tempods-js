@@ -25,6 +25,6 @@
 
 <script setup lang="ts">
 import { defineProps } from 'vue';
-type SampleTablePropType = { samples: Record<number, { value: number | null; date: Date }> | null, error?: string | null }
+type SampleTablePropType = { samples: Record<number, { value: number | null; date: Date }> | null, error?: string | null };
 const _props = defineProps<SampleTablePropType>();
 </script>
