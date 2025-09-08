@@ -3,6 +3,11 @@
   id="app"
   :style="cssVars"
 >
+<script setup lang="ts">
+import { useDisplay } from 'vuetify'
+
+const display = useDisplay()
+</script>
 
   <v-overlay
     :model-value="inIntro"
