@@ -6,8 +6,9 @@ import type {
   SavedAggregationPattern,
   AggregationGroup,
   AggregationResultGroup,
-  MillisecondRange
 } from '../types/aggregation';
+
+import type { MillisecondRange } from '../types/datetime';
 
 export function useFlexibleAggregation() {
   const savedPatterns = ref<SavedAggregationPattern[]>([]);
