@@ -144,6 +144,16 @@
                 >
                 Back
               </v-btn>
+              <v-btn
+                @click="showAggregationDialog = true"
+                color="secondary"
+                variant="outlined"
+                size="small"
+                :disabled="!currentUserSelection?.region"
+              >
+                <v-icon class="mr-1">mdi-chart-timeline-variant</v-icon>
+                Advanced Aggregation
+              </v-btn>
             </div>
             
             <v-btn
@@ -1177,6 +1187,24 @@
       max-width="400px"
       id="privacy-popup-dialog"
     >
+      <!-- Advanced Aggregation Dialog -->
+      <cds-dialog
+        v-model="showAggregationDialog"
+        title="Advanced Time Series Aggregation"
+        :draggable="true"
+        :modal="false"
+        :scrim="false"
+        :persistent="false"
+        class="aggregation-dialog"
+      >
+        <AggregationWorkflow
+          :available-timestamps="esriTimesteps"
+          :current-region="currentUserSelection?.region"
+          @workflow-complete="onAggregationComplete"
+          @pattern-saved="onPatternSaved"
+        />
+      </cds-dialog>
+
       <v-card>
         <v-card-text>
           To evaluate usage of this app, <strong>anonymized</strong> data may be collected, including locations viewed and map quiz responses. "My Location" data is NEVER collected.
@@ -1511,6 +1539,7 @@ const searchErrorMessage = ref<string | null>(null);
 const showControls = ref(false);
 const showCredits = ref(false);
 const showAboutData = ref(false);
+const showAggregationDialog = ref(false);
 const showUserGuide = ref(false);
 
 const showLocationMarker = ref(true);
