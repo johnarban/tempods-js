@@ -211,8 +211,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { v4 } from 'uuid';
 import DatePicker from '@vuepic/vue-datepicker';
-import AggregationPreview from './AggregationPreview.vue';
-import SavedPatternsManager from './SavedPatternsManager.vue';
+import AggregationPreview from './AggregationPreview';
 import { useFlexibleAggregation } from '../../composables/useFlexibleAggregation';
 import type { 
   AggregationPattern, 

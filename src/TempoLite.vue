@@ -332,5 +332,24 @@
         </map-colorbar-wrap>
       </div>
     </div>
-  </v-app>
+  </div>
+
+  <!-- Advanced Aggregation Dialog -->
+  <cds-dialog
+    v-model="showAggregationDialog"
+    title="Advanced Time Series Aggregation"
+    :color="accentColor2"
+    draggable
+    :scrim="false"
+    max-width="1200"
+  >
+    <AggregationWorkflow
+      v-if="showAggregationDialog"
+      :available-timestamps="availableTimestamps"
+      :current-region="currentUserSelection?.region"
+      @workflow-complete="onAggregationComplete"
+      @pattern-saved="onPatternSaved"
+    />
+  </cds-dialog>
+</v-app>
 </template>

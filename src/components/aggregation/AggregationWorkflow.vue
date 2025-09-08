@@ -172,10 +172,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import FlexibleAggregationInterface from './FlexibleAggregationInterface.vue';
-import AggregationPreview from './AggregationPreview.vue';
-import AggregationResultsViewer from './AggregationResultsViewer.vue';
-import AggregationHelpContent from './AggregationHelpContent.vue';
+import FlexibleAggregationInterface from './FlexibleAggregationInterface';
+import AggregationPreview from './AggregationPreview';
+import AggregationResultsViewer from './AggregationResultsViewer';
+import AggregationHelpContent from './AggregationHelpContent';
 import type { 
   AggregationPattern,
   AggregationPreview as AggregationPreviewType,
