@@ -2,19 +2,19 @@
   <v-app id="app">
     <div id="main-content">
       <div class="content-with-sidebars">
-        <h1 id="title">TEMPO Data Aggregation</h1>
+        <h1 id="title">TEMPO NO₂ Data Aggregation</h1>
         
         <div id="map-container">
           <v-card id="map-contents" style="width:100%; height: 500px;">
             <v-toolbar density="compact" color="primary">
-              <v-toolbar-title text="TEMPO Data Viewer"></v-toolbar-title>
+              <v-toolbar-title text="TEMPO NO₂ Data Viewer"></v-toolbar-title>
               <v-spacer></v-spacer>
               <v-btn
                 @click="showAggregationDialog = true"
                 color="secondary"
                 variant="outlined"
                 size="small"
-                :disabled="!currentUserSelection?.region"
+                :disabled="!currentRegion"
               >
                 <v-icon class="mr-1">mdi-chart-timeline-variant</v-icon>
                 Advanced Aggregation
@@ -32,6 +32,9 @@
                 >
                   Create Test Region
                 </v-btn>
+                <div v-if="currentRegion" class="mt-2 text-success">
+                  Region Selected: {{ currentRegion.name }}
+                </div>
               </div>
             </div>
           </v-card>
@@ -47,7 +50,7 @@
     >
       <v-card>
         <v-card-title class="d-flex justify-space-between">
-          <span>Advanced Time Series Aggregation</span>
+          <span>Advanced NO₂ Time Series Aggregation</span>
           <v-btn
             icon="mdi-close"
             @click="showAggregationDialog = false"
@@ -58,7 +61,7 @@
           <AggregationWorkflow
             v-if="showAggregationDialog"
             :available-timestamps="availableTimestamps"
-            :current-region="currentUserSelection?.region"
+            :current-region="currentRegion"
             @workflow-complete="onAggregationComplete"
             @pattern-saved="onPatternSaved"
           />
@@ -72,11 +75,19 @@
 import { ref } from 'vue';
 import { AggregationWorkflow } from './components/aggregation';
 import type { AggregatedResult, AggregationPattern } from './types/aggregation';
+import { TempoDataService } from './esri/services/TempoDataService';
+import { ESRI_URLS } from './esri/utils';
 
 // UI state
 const showAggregationDialog = ref(false);
 
-// Mock data for testing
+// NO₂ specific data service
+const no2Service = new TempoDataService(
+  ESRI_URLS.no2.url,
+  ESRI_URLS.no2.variable
+);
+
+// Mock data for testing - in real app this would come from ESRI service
 const availableTimestamps = ref([
   Date.now() - 86400000 * 7, // 7 days ago
   Date.now() - 86400000 * 6,
@@ -88,27 +99,49 @@ const availableTimestamps = ref([
   Date.now()
 ]);
 
-const currentUserSelection = ref<{ region?: { id: string; name: string } } | null>(null);
+// Current region state
+const currentRegion = ref<{ id: string; name: string; geometry: unknown } | null>(null);
 
-// Mock region creation
+// Mock region creation for testing
 function createMockRegion() {
-  currentUserSelection.value = {
-    region: {
-      id: 'test-region-1',
-      name: 'Test Region'
+  currentRegion.value = {
+    id: 'test-region-1',
+    name: 'Test NO₂ Region',
+    geometry: {
+      xmin: -118.5,
+      ymin: 33.7,
+      xmax: -118.2,
+      ymax: 34.1
     }
   };
 }
 
 // Aggregation event handlers
 function onAggregationComplete(result: AggregatedResult) {
-  console.log('Aggregation completed:', result);
+  console.log('NO₂ Aggregation completed:', result);
   showAggregationDialog.value = false;
+  
+  // Here you could save the results or update the UI
+  // For example, display the aggregated time series on the map
 }
 
 function onPatternSaved(pattern: AggregationPattern) {
-  console.log('Pattern saved:', pattern);
+  console.log('NO₂ Pattern saved:', pattern);
 }
+
+// Initialize NO₂ service and load timestamps
+async function initializeNo2Data() {
+  try {
+    await no2Service.updateMetadataCache();
+    // In a real implementation, you would fetch actual timestamps from the service
+    console.log('NO₂ service initialized');
+  } catch (error) {
+    console.error('Error initializing NO₂ service:', error);
+  }
+}
+
+// Initialize on mount
+initializeNo2Data();
 </script>
 
 <style scoped>
