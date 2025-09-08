@@ -325,4 +325,12 @@
                <v-switch
                 v-if="regions.length > 0"
                 v-model="showSamplingPreviewMarkers"
-                :label="showSamplingPreviewMarkers ? 'Showing Sample
+                :label="showSamplingPreviewMarkers ? 'Showing Sample Markers' : 'Hide Sample Markers'"
+              ></v-switch>
+            </v-toolbar>
+          </v-card>
+        </map-colorbar-wrap>
+      </div>
+    </div>
+  </v-app>
+</template>

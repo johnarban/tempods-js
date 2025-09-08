@@ -14,6 +14,7 @@ import CDSDialog from "./components/CDSDialog.vue";
 import MarqeeAlert from "./components/MarqeeAlert.vue";
 import TimeseriesGraph from "./components/TimeseriesGraph.vue";
 import SelectionComposer from "./components/SelectionComposer.vue";
+import AggregationWorkflow from "./components/aggregation/AggregationWorkflow.vue";
 
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
