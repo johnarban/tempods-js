@@ -3,12 +3,6 @@
   id="app"
   :style="cssVars"
 >
-<script setup lang="ts">
-import { useDisplay } from 'vuetify'
-
-const display = useDisplay()
-</script>
-
   <v-overlay
     :model-value="inIntro"
     :style="cssVars"
@@ -358,3 +352,10 @@ const display = useDisplay()
   </cds-dialog>
 </v-app>
 </template>
+
+<script setup lang="ts">
+import { useDisplay } from 'vuetify'
+import { AggregationWorkflow } from './components/aggregation'
+
+const display = useDisplay()
+</script>

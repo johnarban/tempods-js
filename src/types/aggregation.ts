@@ -37,7 +37,7 @@ export type AggregationMethod = 'mean' | 'median' | 'sum' | 'min' | 'max' | 'cou
 
 export type AggregationPeriod = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'none';
 
-export interface AggregationPreview {
+export interface AggregationPreviewType {
   selectedTimestamps: number[];
   totalDataPoints: number;
   aggregationGroups: AggregationGroup[];

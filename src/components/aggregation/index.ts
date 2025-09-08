@@ -13,7 +13,7 @@ export { useFlexibleAggregation } from '../../composables/useFlexibleAggregation
 // Export types
 export type {
   AggregationPattern,
-  AggregationPreview,
+  AggregationPreviewType,
   AggregatedResult,
   SavedAggregationPattern,
   AggregationMethod,
