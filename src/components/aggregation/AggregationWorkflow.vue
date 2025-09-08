@@ -272,7 +272,7 @@ function loadTemplate(templateType: string) {
   showQuickActions.value = false;
 }
 
-function exportResults() {
+function _exportResults() {
   if (!aggregationResults.value) return;
   
   const csvData = convertToCSV();

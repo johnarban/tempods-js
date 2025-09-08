@@ -426,16 +426,16 @@ function loadPattern(pattern: AggregationPattern) {
   previewData.value = null; // Clear preview when loading new pattern
 }
 
-function deletePattern(patternId: string) {
+function _deletePattern(_patternId: string) {
   // Implementation would remove from storage
   loadSavedPatternsData();
 }
 
-function duplicatePattern(pattern: AggregationPattern) {
+function _duplicatePattern(_pattern: AggregationPattern) {
   const duplicated = {
-    ...pattern,
+    ..._pattern,
     id: v4(),
-    name: `${pattern.name} (Copy)`,
+    name: `${_pattern.name} (Copy)`,
     created: new Date(),
     modified: new Date()
   };

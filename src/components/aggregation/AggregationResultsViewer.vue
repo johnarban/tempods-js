@@ -126,7 +126,7 @@ const tableHeaders = [
 ];
 
 // Methods
-function onRowClick(event: Event, { item }: { item: AggregationResultGroup }) {
+function onRowClick(_event: Event, { item }: { item: AggregationResultGroup }) {
   emit('group-selected', item);
 }
 

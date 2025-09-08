@@ -95,7 +95,7 @@ const props = defineProps<{
   pattern: AggregationPattern;
 }>();
 
-const emit = defineEmits<{
+const _emit = defineEmits<{
   'update-pattern': [pattern: Partial<AggregationPattern>];
 }>();
 </script>

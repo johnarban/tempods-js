@@ -273,16 +273,18 @@ export function useFlexibleAggregation() {
 
     let result: number;
     switch (method) {
-    case 'mean':
+    case 'mean': {
       result = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
       break;
-    case 'median':
+    }
+    case 'median': {
       const sorted = [...validValues].sort((a, b) => a - b);
       const mid = Math.floor(sorted.length / 2);
       result = sorted.length % 2 === 0 
         ? (sorted[mid - 1] + sorted[mid]) / 2 
         : sorted[mid];
       break;
+    }
     case 'sum':
       result = validValues.reduce((sum, val) => sum + val, 0);
       break;
@@ -352,20 +354,20 @@ export function useFlexibleAggregation() {
     try {
       const stored = localStorage.getItem('aggregation-patterns');
       if (stored) {
-        const patterns = JSON.parse(stored);
+        const patterns = JSON.parse(stored) as unknown[];
         // Convert date strings back to Date objects
-        return patterns.map((p: any) => ({
+        return patterns.map((p: unknown) => ({
           ...p,
           pattern: {
-            ...p.pattern,
+            ...(p as { pattern: AggregationPattern }).pattern,
             dateRange: {
-              start: new Date(p.pattern.dateRange.start),
-              end: new Date(p.pattern.dateRange.end)
+              start: new Date((p as { pattern: AggregationPattern }).pattern.dateRange.start),
+              end: new Date((p as { pattern: AggregationPattern }).pattern.dateRange.end)
             },
-            created: new Date(p.pattern.created),
-            modified: new Date(p.pattern.modified)
+            created: new Date((p as { pattern: AggregationPattern }).pattern.created),
+            modified: new Date((p as { pattern: AggregationPattern }).pattern.modified)
           },
-          lastUsed: new Date(p.lastUsed)
+          lastUsed: new Date((p as { lastUsed: string }).lastUsed)
         }));
       }
     } catch (error) {
