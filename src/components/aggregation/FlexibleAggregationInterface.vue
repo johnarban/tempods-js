@@ -191,12 +191,17 @@
 
       <!-- Saved Patterns Mode -->
       <div v-else-if="mode === 'saved'">
-        <SavedPatternsManager
-          :saved-patterns="savedPatterns"
-          @load-pattern="loadPattern"
-          @delete-pattern="deletePattern"
-          @duplicate-pattern="duplicatePattern"
-        />
+        <div class="text-center pa-6">
+          <v-icon size="64" color="grey-darken-1" class="mb-3">
+            mdi-folder-open-outline
+          </v-icon>
+          <div class="text-body-1 text-medium-emphasis mb-2">
+            Saved patterns feature coming soon
+          </div>
+          <div class="text-body-2 text-disabled">
+            For now, use the Create tab to build aggregation patterns
+          </div>
+        </div>
       </div>
     </v-card-text>
   </v-card>

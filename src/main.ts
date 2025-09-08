@@ -87,6 +87,7 @@ createApp(TempoLite, {})
   .component('marquee-alert', MarqeeAlert)
   .component('timeseries-graph', TimeseriesGraph)
   .component('selection-composer', SelectionComposer)
+  .component('aggregation-workflow', AggregationWorkflow)
 
   // Mount
   .mount("#app");

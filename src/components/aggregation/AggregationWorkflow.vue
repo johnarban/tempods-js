@@ -271,6 +271,45 @@ function loadTemplate(templateType: string) {
   console.log('Loading template:', templateType);
   showQuickActions.value = false;
 }
+
+function exportResults() {
+  if (!aggregationResults.value) return;
+  
+  const csvData = convertToCSV();
+  const blob = new Blob([csvData], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `aggregation_results_${aggregationResults.value.metadata.pattern.name.replace(/[^a-z0-9]/gi, '_')}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function convertToCSV(): string {
+  if (!aggregationResults.value) return '';
+  
+  const headers = [
+    'Group Label',
+    'Timestamp',
+    'Date',
+    'Value',
+    'Error Lower',
+    'Error Upper',
+    'Sample Size'
+  ];
+  
+  const rows = aggregationResults.value.groups.map(group => [
+    group.label,
+    group.timestamp,
+    new Date(group.timestamp).toISOString(),
+    group.value?.toString() || 'null',
+    group.error.lower?.toString() || 'null',
+    group.error.upper?.toString() || 'null',
+    group.sampleSize
+  ]);
+  
+  return [headers, ...rows].map(row => row.join(',')).join('\n');
+}
 </script>
 
 <style scoped>

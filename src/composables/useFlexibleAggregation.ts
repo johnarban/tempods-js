@@ -244,11 +244,11 @@ export function useFlexibleAggregation() {
   async function fetchDataForTimestamps(
     region: any,
     timestamps: number[],
-    pattern: AggregationPattern
+    _pattern: AggregationPattern
   ): Promise<{ values: number[]; errors: number[] }> {
     // This would integrate with the existing TempoDataService
     // For now, return mock data
-    const values = timestamps.map(() => Math.random() * 1000000);
+    const values = timestamps.map(() => Math.random() * 1000000 + region?.id ? 100000 : 0);
     const errors = values.map(v => v * 0.1);
     
     return { values, errors };
