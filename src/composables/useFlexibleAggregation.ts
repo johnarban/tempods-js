@@ -195,23 +195,23 @@ export function useFlexibleAggregation() {
     const startDate = new Date(startTime);
     
     switch (period) {
-      case 'daily':
-        return new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 1).getTime() - 1;
-      case 'weekly':
-        const weekStart = new Date(startDate);
-        weekStart.setDate(startDate.getDate() - startDate.getDay()); // Start of week (Sunday)
-        return new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000).getTime() - 1;
-      case 'biweekly':
-        const biweekStart = new Date(startDate);
-        biweekStart.setDate(startDate.getDate() - startDate.getDay());
-        return new Date(biweekStart.getTime() + 14 * 24 * 60 * 60 * 1000).getTime() - 1;
-      case 'monthly':
-        return new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
-      case 'quarterly':
-        const quarter = Math.floor(startDate.getMonth() / 3);
-        return new Date(startDate.getFullYear(), (quarter + 1) * 3, 0, 23, 59, 59, 999).getTime();
-      default:
-        return startTime;
+    case 'daily':
+      return new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 1).getTime() - 1;
+    case 'weekly':
+      const weekStart = new Date(startDate);
+      weekStart.setDate(startDate.getDate() - startDate.getDay()); // Start of week (Sunday)
+      return new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000).getTime() - 1;
+    case 'biweekly':
+      const biweekStart = new Date(startDate);
+      biweekStart.setDate(startDate.getDate() - startDate.getDay());
+      return new Date(biweekStart.getTime() + 14 * 24 * 60 * 60 * 1000).getTime() - 1;
+    case 'monthly':
+      return new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+    case 'quarterly':
+      const quarter = Math.floor(startDate.getMonth() / 3);
+      return new Date(startDate.getFullYear(), (quarter + 1) * 3, 0, 23, 59, 59, 999).getTime();
+    default:
+      return startTime;
     }
   }
 
@@ -223,19 +223,19 @@ export function useFlexibleAggregation() {
     const endDate = new Date(endTime);
     
     switch (period) {
-      case 'daily':
-        return startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      case 'weekly':
-        return `Week of ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      case 'biweekly':
-        return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      case 'monthly':
-        return startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-      case 'quarterly':
-        const quarter = Math.floor(startDate.getMonth() / 3) + 1;
-        return `Q${quarter} ${startDate.getFullYear()}`;
-      default:
-        return startDate.toLocaleDateString();
+    case 'daily':
+      return startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    case 'weekly':
+      return `Week of ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    case 'biweekly':
+      return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    case 'monthly':
+      return startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    case 'quarterly':
+      const quarter = Math.floor(startDate.getMonth() / 3) + 1;
+      return `Q${quarter} ${startDate.getFullYear()}`;
+    default:
+      return startDate.toLocaleDateString();
     }
   }
 
@@ -273,30 +273,30 @@ export function useFlexibleAggregation() {
 
     let result: number;
     switch (method) {
-      case 'mean':
-        result = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
-        break;
-      case 'median':
-        const sorted = [...validValues].sort((a, b) => a - b);
-        const mid = Math.floor(sorted.length / 2);
-        result = sorted.length % 2 === 0 
-          ? (sorted[mid - 1] + sorted[mid]) / 2 
-          : sorted[mid];
-        break;
-      case 'sum':
-        result = validValues.reduce((sum, val) => sum + val, 0);
-        break;
-      case 'min':
-        result = Math.min(...validValues);
-        break;
-      case 'max':
-        result = Math.max(...validValues);
-        break;
-      case 'count':
-        result = validValues.length;
-        break;
-      default:
-        result = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
+    case 'mean':
+      result = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
+      break;
+    case 'median':
+      const sorted = [...validValues].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      result = sorted.length % 2 === 0 
+        ? (sorted[mid - 1] + sorted[mid]) / 2 
+        : sorted[mid];
+      break;
+    case 'sum':
+      result = validValues.reduce((sum, val) => sum + val, 0);
+      break;
+    case 'min':
+      result = Math.min(...validValues);
+      break;
+    case 'max':
+      result = Math.max(...validValues);
+      break;
+    case 'count':
+      result = validValues.length;
+      break;
+    default:
+      result = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
     }
 
     // Calculate standard error

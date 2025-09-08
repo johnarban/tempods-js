@@ -354,8 +354,8 @@
 </template>
 
 <script setup lang="ts">
-import { useDisplay } from 'vuetify'
-import { AggregationWorkflow } from './components/aggregation'
+import { useDisplay } from 'vuetify';
+import { AggregationWorkflow } from './components/aggregation';
 
-const display = useDisplay()
+const display = useDisplay();
 </script>
