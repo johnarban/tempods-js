@@ -355,7 +355,20 @@
 
 <script setup lang="ts">
 import { useDisplay } from 'vuetify';
+import { ref } from 'vue'
 import { AggregationWorkflow } from './components/aggregation';
 
 const display = useDisplay();
+
+// Initialize whichMolecule with a default value
+const whichMolecule = ref('no2');
+
+// Initialize colorbarOptions with default structure
+const colorbarOptions = ref({
+  no2: {
+    stretch: [0, 100],
+    cbarScale: 1,
+    label: 'NO₂'
+  }
+});
 </script>
