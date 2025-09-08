@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import type { 
   AggregationPattern, 
-  AggregationPreview,
+  AggregationPreviewType,
   AggregatedResult,
   SavedAggregationPattern,
   AggregationGroup,
@@ -19,7 +19,7 @@ export function useFlexibleAggregation() {
   async function generatePreview(
     pattern: AggregationPattern,
     availableTimestamps: number[]
-  ): Promise<AggregationPreview> {
+  ): Promise<AggregationPreviewType> {
     const selectedTimestamps = selectTimestamps(pattern, availableTimestamps);
     const aggregationGroups = createAggregationGroups(selectedTimestamps, pattern);
     
@@ -36,7 +36,7 @@ export function useFlexibleAggregation() {
    */
   async function executeAggregation(
     pattern: AggregationPattern,
-    preview: AggregationPreview,
+    preview: AggregationPreviewType,
     region: any // Current region for data fetching
   ): Promise<AggregatedResult> {
     // This would integrate with the existing ESRI data fetching system
