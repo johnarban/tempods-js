@@ -178,10 +178,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
-import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
+import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/binningAndFoldingClasses';
 import PlotlyGraph from './PlotlyGraph.vue';
 import type { Prettify, UserDataset, PlotltGraphDataSet, UnifiedRegion } from '../types';
-import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
+import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/binningAndFoldingClasses';
 import tz_lookup from '@photostructure/tz-lookup';
 
 interface DataFoldingProps {
@@ -324,14 +324,21 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omi
   // tsa, tsb are the timestamps as strings
   const sortedEntries = Object.entries(foldedTimeSeries.bins).sort(([binIndexa, _a], [binIndexb, _b]) => parseInt(binIndexa) - parseInt(binIndexb));
 
+  console.log(`[OLD DataFolding] foldedTimesSeriesToDataSet: bins count=${sortedEntries.length}, foldType=${foldedTimeSeries.foldType}`);
+
   sortedEntries.forEach(([binIndex, _binContent]) => {
     const idx = parseInt(binIndex);
-    x.push(idx + (alignToBinCenter.value ? 0.5 : 0));
+    const xValue = idx + (alignToBinCenter.value ? 0.5 : 0);
+    x.push(xValue);
     y.push(foldedTimeSeries.values[idx].value);
     const error = foldedTimeSeries.errors[idx];
     lower.push(error?.lower ?? null);
     upper.push(error?.upper ?? null);
   });
+
+  console.log(`[OLD DataFolding] Aggregated output: x range=[${Math.min(...x.filter(v => v !== null) as number[])}, ${Math.max(...x.filter(v => v !== null) as number[])}], x.length=${x.length}`);
+  console.log(`[OLD DataFolding] Sample x values: [${x.slice(0, 10).join(', ')}]`);
+  console.log(`[OLD DataFolding] Sample y values: [${y.slice(0, 5).join(', ')}]`);
 
   return { x, y, lower, upper, errorType: useErrorBars.value ? 'bar' : 'band'  };
 }
@@ -354,12 +361,15 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): O
   // tsa, tsb are the timestamps as strings
   const sortedEntries = Object.entries(foldedTimeSeries.bins).sort(([binIndexa, _a], [binIndexb, _b]) => parseInt(binIndexa) - parseInt(binIndexb));
 
+  console.log(`[OLD DataFolding] foldedTimeSeriesRawToDataSet: bins count=${sortedEntries.length}, foldType=${foldedTimeSeries.foldType}, includeBinPhase=${includeBinPhase.value}`);
+
   sortedEntries.forEach(([binIndex, binContent]) => {
     const sortedBinContent = sortfoldBinContent(binContent);
     const idx = sortedBinContent.bin;
     const bins = sortedBinContent as Prettify<FoldBinContent>;
     bins.rawValues.forEach((rv, index) => {
-      x.push(bins.bin + (includeBinPhase.value ? bins.binPhase[index] : 0));
+      const xValue = bins.bin + (includeBinPhase.value ? bins.binPhase[index] : 0);
+      x.push(xValue);
       y.push(rv);
     });
     bins.lowers.forEach(low => {
@@ -372,6 +382,10 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): O
     // lower.push(error?.lower ?? null);
     // upper.push(error?.upper ?? null);
   });
+  
+  console.log(`[OLD DataFolding] Raw output: x range=[${Math.min(...x.filter(v => v !== null) as number[])}, ${Math.max(...x.filter(v => v !== null) as number[])}], x.length=${x.length}`);
+  console.log(`[OLD DataFolding] Sample raw x values: [${x.slice(0, 10).join(', ')}]`);
+  console.log(`[OLD DataFolding] Sample raw y values: [${y.slice(0, 5).join(', ')}]`);
   
   // Ensure x is strictly increasing for Plotly
   // if (!checkMonotonicIncreasing(x)) {
@@ -403,6 +417,58 @@ function updateGraphData() {
   
   graphData.value = data;
   console.log("Graph data updated with", data.length, "datasets");
+  
+  // Log the actual graph data for debugging - apples to apples comparison
+  if (data.length > 0) {
+    console.log("[OLD updateGraphData] Dataset 0 (raw):", {
+      name: data[0].name,
+      xLength: data[0].x.length,
+      xSample: data[0].x.slice(0, 20),
+      xRange: data[0].x.length > 0 ? [Math.min(...(data[0].x.filter(v => typeof v === 'number') as number[])), Math.max(...(data[0].x.filter(v => typeof v === 'number') as number[]))] : [],
+      ySample: data[0].y.slice(0, 10)
+    });
+    
+    // Create sorted version for comparison
+    const indices = [...Array(data[0].x.length).keys()].sort((a, b) => {
+      const xa = data[0].x[a] as number;
+      const xb = data[0].x[b] as number;
+      return xa - xb;
+    });
+    console.log("[OLD RAW SORTED] First 5 non-null values:");
+    let count = 0;
+    for (let i = 0; i < indices.length && count < 5; i++) {
+      const idx = indices[i];
+      if (data[0].y[idx] !== null) {
+        console.log(`  [${count}] x=${data[0].x[idx]}, y=${data[0].y[idx]}, upper=${data[0].upper?.[idx]}`);
+        count++;
+      }
+    }
+  }
+  if (data.length > 1) {
+    console.log("[OLD updateGraphData] Dataset 1 (aggregated):", {
+      name: data[1].name,
+      xLength: data[1].x.length,
+      xSample: data[1].x.slice(0, 20),
+      xRange: data[1].x.length > 0 ? [Math.min(...(data[1].x.filter(v => typeof v === 'number') as number[])), Math.max(...(data[1].x.filter(v => typeof v === 'number') as number[]))] : [],
+      ySample: data[1].y.slice(0, 10)
+    });
+    
+    // Create sorted version for comparison
+    const indices = [...Array(data[1].x.length).keys()].sort((a, b) => {
+      const xa = data[1].x[a] as number;
+      const xb = data[1].x[b] as number;
+      return xa - xb;
+    });
+    console.log("[OLD AGGREGATED SORTED] First 5 non-null values:");
+    let count = 0;
+    for (let i = 0; i < indices.length && count < 5; i++) {
+      const idx = indices[i];
+      if (data[1].y[idx] !== null) {
+        console.log(`  [${count}] x=${data[1].x[idx]}, y=${data[1].y[idx]}, upper=${data[1].upper?.[idx]}`);
+        count++;
+      }
+    }
+  }
 }
 
 // Create a time range for the folded data

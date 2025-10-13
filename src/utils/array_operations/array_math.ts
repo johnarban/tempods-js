@@ -84,7 +84,7 @@ export function variance(arr: DirtyNumberArray): number | null {
 export function stdev(arr: DirtyNumberArray): number | null {
   const v = variance(arr);
   if (v === null) return null;
-  return v;
+  return Math.sqrt(v);
 }
 
 export function standardError(arr: DirtyNumberArray): number | null {
@@ -147,19 +147,63 @@ export function nanmedianAbsoluteDeviation(arr: DirtyNumberArray): number | null
   return median(absDevs);
 }
 
+export function mad(arr: number[]): number;
+export function mad(arr: DirtyNumberArray): number | null {
+  const med = median(arr);
+  if (med === null) return null;
+  const absDevs = (arr as number[]).map(v => Math.abs(v - med));
+  return median(absDevs);
+}
+
 export function nanmad(arr: DirtyNumberArray): number | null {
   return nanmedianAbsoluteDeviation(arr);
 }
-export function nanmin(arr: DirtyNumberArray): number | null {
-  const { validArr } = _getValidData(arr);
-  if (validArr.length === 0) return null;
-  return Math.min(...validArr);
+
+
+export function arrayMax(arr: number[]): number | null {
+  if (arr.length === 0) {
+    return null;
+  }
+
+  return arr.reduce((max, current) => {
+    return current > max ? current : max;
+  });
 }
 
-export function nanmax(arr: DirtyNumberArray): number | null {
+export function arrayMin(arr: number[]): number | null {
+  if (arr.length === 0) {
+    return null;
+  }
+
+  return arr.reduce((min, current) => {
+    return current < min ? current : min;
+  });
+}
+
+export function nanmin(arr: DirtyNumberArray, returnIndex: true): { value: number, index: number } | null;
+export function nanmin(arr: DirtyNumberArray, returnIndex?: false): number | null;
+export function nanmin(arr: DirtyNumberArray, returnIndex = false): { value: number, index: number } | number | null {
   const { validArr } = _getValidData(arr);
   if (validArr.length === 0) return null;
-  return Math.max(...validArr);
+  if (!returnIndex) {
+    return arrayMin(validArr);
+  } else {
+    const r = validArr.reduce((min, val, idx) => val < min.value ? { value: val, index: idx } : min, { value: validArr[0], index: 0 });
+    return r;
+  }
+}
+
+export function nanmax(arr: DirtyNumberArray, returnIndex: true): { value: number, index: number } | null;
+export function nanmax(arr: DirtyNumberArray, returnIndex?: false): number | null;
+export function nanmax(arr: DirtyNumberArray, returnIndex = false): { value: number, index: number } | number | null {
+  const { validArr } = _getValidData(arr);
+  if (validArr.length === 0) return null;
+  if (!returnIndex) {
+    return arrayMax(validArr);
+  } else {
+    const r = validArr.reduce((max, val, idx) => val > max.value ? { value: val, index: idx } : max, { value: validArr[0], index: 0 });
+    return r;
+  }
 }
 
 

@@ -15,6 +15,11 @@ import {
   format as formatTz,
   formatInTimeZone
 } from 'date-fns-tz';
+
+import {
+  getBeginningOfWeek, 
+} from '../../utils/calendar_utils';
+
 import {
   nan2null,
   nanmean,
@@ -25,7 +30,7 @@ import {
   nanmin,
   nanmax,
   nanRootMeanSquare,
-} from "./array_math";
+} from "../../utils/array_operations/array_math";
 
 
 
@@ -40,48 +45,6 @@ export interface TimeSeriesData {
 // aggregation options
 // daily, multi-day, weekly
 
-/** https://www.geeksforgeeks.org/javascript/calculate-current-week-number-in-javascript/
-* getWeekoOfYear for Date object
-* If you have a UTC/js timestamp, and want the day of week for a 
-* specfic timezone
-*/
-function getWeekOfYear(date: Date) {
-  const currentDate = 
-    (typeof date === 'object') ? date : new Date();
-  const januaryFirst = 
-    new Date(currentDate.getFullYear(), 0, 1);
-  const daysToNextMonday = 
-    (januaryFirst.getDay() === 1) ? 0 : 
-      (7 - januaryFirst.getDay()) % 7;
-  const nextMonday = 
-    new Date(currentDate.getFullYear(), 0, 
-      januaryFirst.getDate() + daysToNextMonday);
-
-  return (currentDate < nextMonday) ? 52 : 
-    (currentDate > nextMonday ? Math.ceil(
-      (currentDate.getTime() - nextMonday.getTime()) / (24 * 3600 * 1000) / 7) : 1);
-}
-
-
-function getBeginningOfWeek(date: Date, timezone?: string): Date {
-  const zonedDate = timezone ? toZonedTime(date, timezone) : date;
-  const day = zonedDate.getDay(); // 0 (Sun) to 6 (Sat)
-  const weekStart = new Date(zonedDate);
-  weekStart.setDate(zonedDate.getDate() - day); // move back to sunday
-  weekStart.setHours(0, 0, 0, 0);
-  // want this to return the UTC time (so we can use the timestamp if we want)
-  return timezone ? fromZonedTime(weekStart, timezone) : weekStart;
-}
-
-function getEndOfWeek(date: Date, timezone?: string): Date {
-  const zonedDate = timezone ? toZonedTime(date, timezone) : date;
-  const day = zonedDate.getDay();
-  const weekEnd = new Date(zonedDate);
-  // Move to Saturday (day 6) then set end of day
-  weekEnd.setDate(zonedDate.getDate() + (6 - day));
-  weekEnd.setHours(23, 59, 59, 999);
-  return timezone ? fromZonedTime(weekEnd, timezone) : weekEnd;
-}
 
 
 type Window = string ; // e.g, '1d', '3d', '1w' , 'weekly'
@@ -270,7 +233,12 @@ export type FoldType =
     'weekOfSeason' |  // week bins, folded over a season (0-13 max)
     // Month-based bins
     'monthOfYear' |   // month bins, folded over a year (0-11)
-    'monthOfSeason';  // month bins, folded over a season (0-2)
+    'monthOfSeason' |  // month bins, folded over a season (0-2)
+    // No folding
+    'hourOfAll' |    // hour bins, folded over all data (0-23)
+    'dayOfAll' |     // day bins, folded over all data (0-6)
+    'weekOfAll' |    // week bins, folded over all data (0-4)
+    'monthOfAll';   // month bins, folded over all data (0-11)
 
 export interface FoldBinContent {
   bin: number;
@@ -382,7 +350,13 @@ export class TimeSeriesFolder {
       
       // Special cases
       case 'weekdayWeekend': return 2;
-      
+
+      // all
+      case 'hourOfAll': return Infinity;
+      case 'dayOfAll': return Infinity;
+      case 'weekOfAll': return Infinity;
+      case 'monthOfAll': return Infinity;
+
       default:
         console.error('Unknown fold type:', this.foldType);
         return 1;
@@ -392,7 +366,9 @@ export class TimeSeriesFolder {
   // instead of a groupId we just need the bin index
   private _binIndex(date: Date): number {
     const z = this._getZonedDate(date);
+    const f = new Date(z); // copy
     
+
     switch (this.foldType) {
       // Hour-based bins
       case 'hourOfDay': 
@@ -474,10 +450,40 @@ export class TimeSeriesFolder {
       case 'weekdayWeekend': 
         return (z.getDay() % 6 > 0) ? 1 : 0;                    // 1=weekday, 0=weekend
       
+
+
+      // Hour-based bins
+      case 'hourOfAll': 
+        f.setMinutes(0, 0, 0); // round down to the hour
+        return f.getTime();                                    // 0–23
+      
+      
+      // Day-based bins
+      case 'dayOfAll': 
+        f.setHours(0, 0, 0, 0); // round down to the day
+        return f.getTime();                                   // 0–6
+      
+      
+      // Week-based bins
+      case 'weekOfAll': {
+        // eslint-disable-next-line no-case-declarations
+        const weekStart = getBeginningOfWeek(date, this.timezone);
+        return weekStart.getTime();
+      
+      }
+    
+      // Month-based bins
+      case 'monthOfAll': 
+        f.setHours(0, 0, 0, 0); // round down to the month
+        f.setDate(1);
+        return f.getTime();                                    // 0–11                    // 1=weekday, 0=weekend
+      
       default:
         console.error('Unknown fold type:', this.foldType);
         return 0;
-    }
+
+  }
+
   }
   
   private _binPhase(date: Date): number {
@@ -526,6 +532,25 @@ export class TimeSeriesFolder {
       case 'weekdayWeekend': 
         return 0;  // binary choice, no phase
       
+      case 'hourOfAll':
+        return  minutes / 60 + seconds / 3600 + milliseconds / 3600000; // hour of day
+      case 'dayOfAll': {
+        const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
+        return hourOfDay / 24; // day of week as fraction
+      }
+      case 'weekOfAll': {
+        const dayOfWeek = z.getDay();
+        const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
+        return (dayOfWeek + hourOfDay / 24) / 7; // week of month as fraction
+      }
+      case 'monthOfAll': {
+        const dayOfMonth = z.getDate() - 1; // 0-based
+        const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
+        const daysInMonth = new Date(z.getFullYear(), z.getMonth() + 1, -1).getDate();
+        return (dayOfMonth + hourOfDay / 24) / daysInMonth; // month of year as fraction
+      }
+        
+      
       default:
         console.error('Unknown fold type:', this.foldType);
         return 0;
@@ -543,7 +568,7 @@ export class TimeSeriesFolder {
     
     Object.entries(timeseries.values).forEach(([ts,d]) => {
       const binIndex = this._binIndex(d.date);
-      console.log('Folding date', d.date, 'to bin index', binIndex, 'with fold type', this.foldType);
+      // console.log('Folding date', d.date, 'to bin index', binIndex, 'with fold type', this.foldType);
       if (binIndex == null || binIndex < 0 || binIndex >= binCount) {
         console.error('Invalid bin index', binIndex, 'for date', d.date, 'with fold type', this.foldType);
         return;

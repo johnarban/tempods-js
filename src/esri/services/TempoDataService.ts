@@ -11,7 +11,7 @@ import type {
   EsriImageServiceSpec,
 } from '../types';
 import type { AggValue, DataPointError, MillisecondRange } from "../../types";
-import {nanmean, diff} from './array_math';
+import {nanmean, diff} from '../../utils/array_operations/array_math';
 import { EsriSampler } from './sampling';
 
 // ============================================================================

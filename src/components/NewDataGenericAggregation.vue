@@ -26,6 +26,18 @@
             <v-card variant="outlined" class="pa-3">
               <v-card-title class="text-h6 pa-0 mb-3">Folding Options</v-card-title>
               
+              
+              <!-- Folding Period Selection -->
+              <v-select
+              v-model="selectedFoldingPeriod"
+              :items="foldingPeriodOptions"
+              label="Folding Period"
+              density="compact"
+              variant="outlined"
+              hide-details
+              class="mb-3"
+              />
+              
               <!-- Time Bin Selection -->
               <v-select
                 v-model="selectedTimeBin"
@@ -33,19 +45,8 @@
                 label="Time Bin"
                 density="compact"
                 variant="outlined"
-                hide-details
-                class="mb-3"
-              />
-              
-              <!-- Folding Period Selection -->
-              <v-select
-                v-model="selectedFoldingPeriod"
-                :items="foldingPeriodOptions"
-                label="Folding Period"
-                density="compact"
-                variant="outlined"
-                hide-details
-                class="mb-3"
+              hide-details
+              class="mb-3"
               />
               
               <!-- Timezone Selection -->
@@ -132,7 +133,8 @@
                   <div>Aggregated points: {{ foldedDataPointCount }}</div>
                   <div>Time Bin: {{ selectedTimeBin }}</div>
                   <div>Folding Period: {{ selectedFoldingPeriod }}</div>
-                  <div>Fold Type: {{ selectedFoldType }}</div>
+                  <div>FoldedDate PeriodMs: {{ foldedData?.periodMs }}</div>
+                  <div>Epoch Start: {{ foldedData?.epochStart }}</div>
                 </div>
               </v-card>
               
@@ -178,6 +180,21 @@
                     { 'thickness': 3, 'width': 0 } // folded data error bar style
                   ]"
                 />
+                <plotly-graph
+                  v-if="foldedData && foldedData.x && foldedData.y"
+                  :datasets="[
+                    { 
+                      name: 'Folded Data',
+                      x: foldedData.x,
+                      y: foldedData.y
+                    }
+                  ]"
+                  :show-errors="false"
+                  :colors="['#333']"
+                  :data-options="[
+                    {mode: 'markers'}, // options for the original data
+                    ]"
+                />
               </div>
             </v-card>
           </v-col>
@@ -191,11 +208,22 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
-import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
+import { timeSeriesBinner } from '../utils/array_operations/binData';
+import { timeSeriesFolder, timeseriesFoldAndBin } from '../utils/array_operations/foldData';
+import { 
+  userDatasetToArrays,
+  resampledDataToPlotly,
+  foldedDataRawToPlotly,
+  foldedDataAggregatedToPlotly,
+  getFoldedDataPointCount
+} from '../esri/services/dataAdapters';
+import type { BinSizes, FoldPeriods } from '../utils/calendar_utils';
+import type { ResampledData } from '../utils/array_operations/binData';
+import type { FoldedData } from '../utils/array_operations/foldData';
 import PlotlyGraph from './PlotlyGraph.vue';
 import type { Prettify, UserDataset, PlotltGraphDataSet, UnifiedRegion } from '../types';
-import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 import tz_lookup from '@photostructure/tz-lookup';
+import { PerformanceLogger } from '@/utils/performance';
 
 interface DataFoldingProps {
   selection: UserDataset | null;
@@ -214,50 +242,48 @@ const dialogOpen = defineModel<boolean>('modelValue', { type: Boolean, required:
 
 
 // Time bin and folding period options
-const timeBinOptions = [
+const timeBinOptions: {title: string, value: BinSizes}[] = [
   { title: 'Hour', value: 'hour' },
   { title: 'Day', value: 'day' },
   { title: 'Week', value: 'week' },
-  { title: 'Month', value: 'month' }
+  { title: 'Month', value: 'month' },
+  { title: 'Weekend/Weekday', value: 'weekendweekday' },
+  { title: 'No binning', value: 'none' }  // Added option for no binning
 ];
 
-const allFoldingPeriodOptions = [
+const allFoldingPeriodOptions: {title: string, value: FoldPeriods}[] = [
   { title: 'Day', value: 'day' },
   { title: 'Week', value: 'week' },
-  { title: 'Month', value: 'month' },
   { title: 'Year', value: 'year' },
-  { title: 'Season', value: 'season' }
+  { title: 'Weekday/Weekend', value: 'weekendweekday' },
+  { title: 'No folding', value: 'none' },
 ];
 
 // Computed property to filter valid folding periods based on selected time bin
 const foldingPeriodOptions = computed(() => {
   const timeBin = selectedTimeBin.value;
   
-  // Define valid combinations
-  const validCombinations: Record<string, string[]> = {
-    'hour': ['day', 'week', 'month', 'year', 'season'],
-    'day': ['week', 'month', 'year', 'season'],
-    'week': ['month', 'year', 'season'],
-    'month': ['year', 'season']
+  // Define valid combinations (removed month and season)
+  // Record<BinSizes, FoldPeriods[]>
+  const validCombinations: Record<'hour' | 'day' | 'week' | 'month' | 'none' | 'weekendweekday', FoldPeriods[]> = {
+    'hour': ['day', 'week', 'year', 'none', 'weekendweekday'],
+    'day': ['week', 'year', 'none'],
+    'week': ['year', 'none'],
+    'month': ['year', 'none'],
+    'none': ['day', 'week', 'year', 'none', 'weekendweekday'],
+    'weekendweekday': ['week','weekendweekday', 'none']
   };
   
   const validPeriods = validCombinations[timeBin] || [];
   return allFoldingPeriodOptions.filter(option => validPeriods.includes(option.value));
 });
 
-// Legacy folding options (kept for backward compatibility)
-const foldingOptions = [
-  { title: 'By Hour', value: 'hourOfDay' },
-  { title: 'By Day of Week', value: 'dayOfWeek' },
-  { title: 'By Hour of Week', value: 'hourOfWeek' },
-  { title: 'Weekday vs Weekend', value: 'weekdayWeekend' }
-];
 
 const methodOptions = [
   { title: 'Mean', value: 'mean' },
   { title: 'Median', value: 'median' },
   { title: 'Min', value: 'min' },
-  { title: 'Max', value: 'max' }
+  { title: 'Max', value: 'max' },
 ];
 
 const timezoneOptions = [
@@ -270,9 +296,9 @@ const timezoneOptions = [
 ];
 
 // Reactive state
-const selectedTimeBin = ref<'hour' | 'day' | 'week' | 'month'>('hour');
-const selectedFoldingPeriod = ref<'day' | 'week' | 'month' | 'year' | 'season'>('day');
-const selectedMethod = ref<AggregationMethod>('mean');
+const selectedTimeBin = ref<BinSizes>('weekendweekday');
+const selectedFoldingPeriod = ref<FoldPeriods>('week');
+const selectedMethod = ref<'mean' | 'median' | 'min' | 'max' | 'sum'>('mean');
 const selectedTimezone = ref('US/Eastern');
 const showErrors = ref(true);
 const useSEM = ref(true);
@@ -280,43 +306,12 @@ const includeBinPhase = ref(true);
 const alignToBinCenter = ref(false);
 const useErrorBars = ref(false);
 
-// Computed FoldType based on time bin and folding period selections
-const selectedFoldType = computed<FoldType>(() => {
-  // Map the combination to the appropriate FoldType
-  const timeBin = selectedTimeBin.value;
-  const period = selectedFoldingPeriod.value;
-  
-  // Construct the fold type string
-  const foldType = `${timeBin}Of${period.charAt(0).toUpperCase()}${period.slice(1)}` as FoldType;
-  
-  console.log('Computed FoldType:', foldType, 'from', timeBin, 'and', period);
-  
-  // Validate that this is a valid FoldType
-  const validFoldTypes: FoldType[] = [
-    'hourOfDay', 'hourOfWeek', 'hourOfMonth', 'hourOfYear', 'hourOfSeason',
-    'dayOfWeek', 'dayOfMonth', 'dayOfYear', 'dayOfSeason',
-    'weekOfMonth', 'weekOfYear', 'weekOfSeason',
-    'monthOfYear', 'monthOfSeason',
-    'weekdayWeekend'
-  ];
-  
-  if (validFoldTypes.includes(foldType)) {
-    return foldType;
-  }
-  
-  // Fallback to a safe default
-  console.warn('Invalid fold type combination:', timeBin, period, '- falling back to hourOfDay');
-  return 'hourOfDay';
-});
-
 // Watch to ensure selected folding period is valid when time bin changes
 watch(selectedTimeBin, () => {
   const validPeriods = foldingPeriodOptions.value.map(opt => opt.value);
   if (!validPeriods.includes(selectedFoldingPeriod.value)) {
-    // Set to first valid option
-    if (validPeriods.length > 0) {
-      selectedFoldingPeriod.value = validPeriods[0] as 'day' | 'week' | 'month' | 'year' | 'season';
-    }
+    selectedFoldingPeriod.value = validPeriods[0] as FoldPeriods;
+    console.log('Adjusted folding period to:', selectedFoldingPeriod.value);
   }
 });
 
@@ -363,8 +358,7 @@ const originalDataPointCount = computed(() => {
 });
 
 const foldedDataPointCount = computed(() => {
-  if (!foldedData.value) return 0;
-  return Object.keys(foldedData.value.values).length;
+  return getFoldedDataPointCount(foldedData.value);
 });
 
 const canSave = computed(() => {
@@ -377,121 +371,39 @@ const foldedDatasetName = computed(() => {
 });
 
 // Aggregated data
-const foldedData = ref<FoldedTimeSeriesData | null>(null);
+const foldedData = ref<FoldedData | null>(null);
 const foldedSelection = ref<null>(null);
 // Graph data for display - now a ref that gets manually updated
 const graphData = ref<PlotltGraphDataSet[]>([]);
 
-
-
-function timeseriesToDataSet(timeseries: TimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
-  const x: PlotltGraphDataSet['x'] = [];
-  const y: PlotltGraphDataSet['y'] = [];
-  const lower: PlotltGraphDataSet['lower'] = [];
-  const upper: PlotltGraphDataSet['upper'] = [];
-
-  // tsa, tsb are the timestamps as strings
-  const sortedEntries = Object.entries(timeseries.values).sort(([tsa, _a], [tsb, _b]) => parseInt(tsa) - parseInt(tsb));
-  // get the first timestamp
-  sortedEntries.forEach(([timestamp, aggValue]) => {
-    y.push(aggValue.value);
-    x.push(new Date(parseInt(timestamp)));
-    const error = timeseries.errors[timestamp];
-    lower.push(error?.lower ?? null);
-    upper.push(error?.upper ?? null);
-  });
-
-  return { x, y, lower, upper };
-}
-
-function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
-  const x: (number | null)[] = [];
-  const y: (number | null)[] = [];
-  const lower: (number | null)[] = [];
-  const upper: (number | null)[] = [];
-
-  // tsa, tsb are the timestamps as strings
-  const sortedEntries = Object.entries(foldedTimeSeries.bins).sort(([binIndexa, _a], [binIndexb, _b]) => parseInt(binIndexa) - parseInt(binIndexb));
-
-  sortedEntries.forEach(([binIndex, _binContent]) => {
-    const idx = parseInt(binIndex);
-    x.push(idx + (alignToBinCenter.value ? 0.5 : 0));
-    y.push(foldedTimeSeries.values[idx].value);
-    const error = foldedTimeSeries.errors[idx];
-    lower.push(error?.lower ?? null);
-    upper.push(error?.upper ?? null);
-  });
-
-  return { x, y, lower, upper, errorType: useErrorBars.value ? 'bar' : 'band'  };
-}
-
-function checkMonotonicIncreasing(arr: number[]): boolean {
-  for (let i = 1; i < arr.length; i++) {
-    if (arr[i] < arr[i - 1]) {
-      return false;
-    }
-  }
-  return true;
-}
-  
-function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
-  const x: (number | null)[] = [];
-  const y: (number | null)[] = [];
-  const lower: (number | null)[] = [];
-  const upper: (number | null)[] = [];
-
-  // tsa, tsb are the timestamps as strings
-  const sortedEntries = Object.entries(foldedTimeSeries.bins).sort(([binIndexa, _a], [binIndexb, _b]) => parseInt(binIndexa) - parseInt(binIndexb));
-
-  sortedEntries.forEach(([binIndex, binContent]) => {
-    const sortedBinContent = sortfoldBinContent(binContent);
-    const idx = sortedBinContent.bin;
-    const bins = sortedBinContent as Prettify<FoldBinContent>;
-    bins.rawValues.forEach((rv, index) => {
-      x.push(bins.bin + (includeBinPhase.value ? bins.binPhase[index] : 0));
-      y.push(rv);
-    });
-    bins.lowers.forEach(low => {
-      lower.push(low ?? null);
-    });
-    bins.uppers.forEach(up => {
-      upper.push(up ?? null);
-    });
-    // const error = foldedTimeSeries.errors[idx];
-    // lower.push(error?.lower ?? null);
-    // upper.push(error?.upper ?? null);
-  });
-  
-  // Ensure x is strictly increasing for Plotly
-  // if (!checkMonotonicIncreasing(x)) {
-  //   console.error("X values are not strictly increasing, adjusting for Plotly compatibility.");
-  // }
-  
-  return { x, y, lower, upper, errorType: 'bar' };
-}
-
 // Function to update graph data
 function updateGraphData() {
-  console.log("Updating graph data");
-  if (!props.selection) {
+  if (!props.selection || !foldedData.value) {
     graphData.value = [];
     return;
   }
   
-  // const data = [timeseriesToDataSet(selectionToTimeseries(props.selection))]; // Original data
   const data: PlotltGraphDataSet[] = [];
   
-  if (foldedData.value) {
-    const t = foldedTimeSeriesRawToDataSet(foldedData.value); // Raw folded data
-    (t as PlotltGraphDataSet).name = props.selection.name || 'Original Data';
-    data.push(t as PlotltGraphDataSet); // Raw folded data
-    const f = foldedTimesSeriesToDataSet(foldedData.value); // Summary folded data
-    (f as PlotltGraphDataSet).name = foldedDatasetName.value;
-    data.push(f as PlotltGraphDataSet); // Summary folded data
-  }
+  const rawDataset = foldedDataRawToPlotly(
+    foldedData.value,
+    props.selection.name || 'Original Data',
+    alignToBinCenter.value, // Apply centering when includeBinPhase=false
+    includeBinPhase.value
+  );
+  
+  // Aggregated data: ALWAYS hide phase (modulo applied), can be centered
+  const aggregatedDataset = foldedDataAggregatedToPlotly(
+    foldedData.value,
+    `${props.selection.name || 'Data'} (Aggregated)`,
+    alignToBinCenter.value, // Only aggregated data can be centered
+    useErrorBars.value,
+    selectedTimeBin.value
+  );
+  
+  data.push(rawDataset, aggregatedDataset);
   
   graphData.value = data;
-  console.log("Graph data updated with", data.length, "datasets");
 }
 
 // Create a time range for the folded data
@@ -513,68 +425,58 @@ function createFoldedTimeRange() {
 }
 
 // Watch for changes in folding parameters
-watch([
-  selectedTimeBin,
-  selectedFoldingPeriod,
-  selectedMethod, 
-  selectedTimezone, 
-  useSEM, 
-  includeBinPhase, 
-  alignToBinCenter, 
-  useErrorBars
-], () => {
-  updateAggregatedData();
-  if (useTzCenter.value && regionCenter.value.lat !== 0 && regionCenter.value.lon !== 0) {
-    const tz = tz_lookup(regionCenter.value.lat, regionCenter.value.lon);
-    if (tz) {
-      selectedTimezone.value = tz;
-    }
-  }
-}, { immediate: true });
+// watch([
+//   selectedTimeBin,
+//   selectedFoldingPeriod,
+//   selectedMethod, 
+//   selectedTimezone, 
+//   useSEM, 
+//   includeBinPhase, 
+//   alignToBinCenter, 
+//   useErrorBars
+// ], () => {
+//   updateAggregatedData();
+//   if (useTzCenter.value && regionCenter.value.lat !== 0 && regionCenter.value.lon !== 0) {
+//     const tz = tz_lookup(regionCenter.value.lat, regionCenter.value.lon);
+//     if (tz) {
+//       selectedTimezone.value = tz;
+//     }
+//   }
+// }, { immediate: true });
 
-function selectionToTimeseries(selection: UserDataset): TimeSeriesData {
-  return {
-    values: selection.samples || {},
-    errors: selection.errors || {},
-    locations: selection.locations || [],
-    geometryType: selection.region.geometryType || 'rectangle'
-  };
-}
+// Only recalculate when data-affecting parameters change
+watch([selectedTimeBin, selectedFoldingPeriod, selectedMethod, selectedTimezone, useSEM], 
+  updateAggregatedData, { immediate: true });
+
+// Handle display-only changes separately
+watch([useErrorBars, alignToBinCenter, includeBinPhase], updateGraphData);
+
+
 
 // Update folded data when parameters change
 function updateAggregatedData() {
-  console.log("Updating folded data with time bin:", selectedTimeBin.value, "folding period:", selectedFoldingPeriod.value, "fold type:", selectedFoldType.value, "method:", selectedMethod.value, "timezone:", selectedTimezone.value);
+  console.log("Updating folded data with time bin:", selectedTimeBin.value, "folding period:", selectedFoldingPeriod.value, "method:", selectedMethod.value, "timezone:", selectedTimezone.value);
   if (!props.selection?.samples) {
     foldedData.value = null;
     return;
   }
   
   try {
+    // Convert UserDataset to arrays
+    const { x, y, e } = userDatasetToArrays(props.selection);
     
-    // Convert the selection data to TimeSeriesData format
-    const timeSeriesData = selectionToTimeseries(props.selection);
+    const errorFunc = useSEM.value ? 'standardError' : 'stdev';
     
-    
-    const grouper = new TimeSeriesFolder(
-      selectedFoldType.value,  // Use the computed fold type
-      selectedTimezone.value, 
-      selectedMethod.value, 
-      useSEM.value ? 'sem' : 'std', true);
-    foldedData.value = grouper.foldData(timeSeriesData);
-      
-    
-    
-    
-    
-    // foldedSelection.value = {
-    //   id: v4(),
-    //   region: props.selection.region,
-    //   timeRange: createAggregatedTimeRange(),
-    //   molecule: props.selection.molecule,
-    //   samples: foldedData.value.values,
-    //   errors: foldedData.value.errors,
-    //   locations: foldedData.value.locations
-    // };
+    foldedData.value = timeseriesFoldAndBin(
+      x,
+      y,
+      e,
+      selectedTimezone.value,
+      { binSize: selectedFoldingPeriod.value as FoldPeriods },
+      selectedTimeBin.value,
+      selectedMethod.value,
+      errorFunc
+    );
     
   } catch (error) {
     console.error('Error aggregating data:', error);
@@ -584,7 +486,6 @@ function updateAggregatedData() {
   
   // Update graph data after folding
   updateGraphData();
-  console.log("graphData after update:", graphData.value);
 }
 
 // Save the folding
@@ -592,15 +493,28 @@ function saveFolding() {
   
   if (!canSave.value || !props.selection || !foldedData.value) return;
   const oldAlignToBinCenter = alignToBinCenter.value;
-  // Ensure alignToBinCenter is false when saving, as we want to store raw bin indices
-  alignToBinCenter.value = false;
+  const oldIncludeBinPhase = includeBinPhase.value;
   
-  // Precompute datasets so parent consumers don't need to transform again.
-  // We intentionally do NOT fabricate Dates for bins; x values remain numeric bin indices / phases.
-  const rawDataset = foldedTimeSeriesRawToDataSet(foldedData.value);
-  (rawDataset as PlotltGraphDataSet).name = props.selection.name || 'Original Data';
-  const summaryDataset = foldedTimesSeriesToDataSet(foldedData.value);
-  (summaryDataset as PlotltGraphDataSet).name = foldedDatasetName.value;
+  // Ensure alignToBinCenter and includeBinPhase are false when saving, as we want to store raw values
+  alignToBinCenter.value = false;
+  includeBinPhase.value = false;
+  
+  // Generate the datasets using the same logic as updateGraphData
+  const rawDataset = foldedDataRawToPlotly(
+    foldedData.value,
+    props.selection.name || 'Original Data',
+    false, // alignToBinCenter - always false when saving
+    false  // includeBinPhase - always false when saving
+  );
+  
+  // Aggregated data: always hide phase, never centered when saving
+  const summaryDataset = foldedDataAggregatedToPlotly(
+    foldedData.value,
+    foldedDatasetName.value,
+    false, // alignToBinCenter - always false when saving
+    useErrorBars.value,
+    selectedTimeBin.value
+  );
 
   const foldedSelection: UserDataset = {
     id: v4(),
@@ -608,13 +522,12 @@ function saveFolding() {
     timeRange: createFoldedTimeRange(),
     molecule: props.selection.molecule,
     loading: false, // folded data is immediately available
-    // samples/errors intentionally omitted for folded since bins are synthetic; rely on plotlyDatasets
-    locations: foldedData.value.locations,
+    // samples/errors intentionally omitted for folded since data structure is different
+    locations: props.selection.locations, // use original locations
     name: foldedDatasetName.value,
     folded: {
       timeBin: selectedTimeBin.value,
       foldingPeriod: selectedFoldingPeriod.value,
-      foldType: selectedFoldType.value,
       method: selectedMethod.value,
       timezone: selectedTimezone.value,
       useSEM: useSEM.value,
@@ -623,11 +536,15 @@ function saveFolding() {
       useErrorBars: useErrorBars.value,
       raw: foldedData.value
     },
-    plotlyDatasets: [rawDataset as PlotltGraphDataSet, summaryDataset as PlotltGraphDataSet]
+    plotlyDatasets: [rawDataset, summaryDataset]
   };
   console.log(foldedSelection);
   emit('save', foldedSelection);
+  
+  // Restore original values
   alignToBinCenter.value = oldAlignToBinCenter;
+  includeBinPhase.value = oldIncludeBinPhase;
+  
   closeDialog();
 }
 
