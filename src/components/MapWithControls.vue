@@ -184,6 +184,7 @@ const {
   showFieldOfRegard,
   showRoads,
   showSamplingPreviewMarkers,
+  singleDateSelected,
 } = storeToRefs(store);
 
 const molecule = ref<MoleculeType>("no2");
@@ -214,7 +215,7 @@ type UnifiedRegionType = typeof regions.value[number];
 const display = useDisplay();
 
 import { addPowerPlants } from "@/composables/addPowerPlants";
-import { MaplibreLayersControl } from "@/MaplibreLayerControl";
+import { addHMSFire } from "@/composables/addHMSFire";
 
 const pp = addPowerPlants(map as Ref<Map | null> | null);
 import { addQUI } from '@/composables/addAQI';
@@ -246,12 +247,28 @@ watch(airQualityUrl, (newUrl) => {
 });
 
 
+import { addPopulationDensityLayer } from '@/composables/addPopulationDensity';
+const popLayer = addPopulationDensityLayer();
+
+import { addLandUseLayer } from "@/composables/addLandUse";
+const sentinalLandUseLayer = addLandUseLayer();
+
+const hmsFire = addHMSFire(singleDateSelected, {
+  layerName: 'hms-fire',
+  visible: false,
+  showPopup: true,
+  showLabel: false,
+});
+
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
   pp.addheatmapLayer();
   // pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
+  popLayer.addEsriSource(m);
+  sentinalLandUseLayer.addEsriSource(m);
+  hmsFire.addToMap(m);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {
     if (m.getLayer('kml-layer-aqi')) {
@@ -737,6 +754,13 @@ watch(focusRegion, region => {
     opacity: 0.7;
     width: fit-content;
   }
+}
+
+.hms-popup {
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: 200px;
+  color: black;
 }
 
 @import "@/styles/maplibre-layer-control.css";

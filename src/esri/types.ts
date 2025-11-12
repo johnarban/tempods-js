@@ -48,7 +48,7 @@ export interface CEsriTimeseries {
   y: number;
   time: number;
   date: Date; 
-  variable: number | null;
+  variable: number | string | null;
   value: number | null;
   locationId: number;
   geometryType: 'rectangle' | 'point';

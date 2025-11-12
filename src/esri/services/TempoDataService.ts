@@ -354,16 +354,32 @@ export class TempoDataService extends ImageServiceServiceMetadata {
         throw new Error(`Error fetching samples (${data.error.code}): ${data.error.message} ${data.error.details}`);
       }
 
-      const processedSamples = data.samples.map((sample: EsriGetSamplesSample) => ({
-        x: sample.location.x,
-        y: sample.location.y,
-        time: sample.attributes.StdTime,
-        date: new Date(sample.attributes.StdTime),
-        variable: safeParseNumber(sample.attributes[this.variable] ?? ''),
-        value: safeParseNumber(sample.value),
-        locationId: sample.locationId,
-        geometryType: this.isRectBounds(geometry) ? 'rectangle' : 'point' as 'rectangle' | 'point'
-      })); // this is a CEsriTimeseries[]
+      const processedSamples = data.samples.map((sample: EsriGetSamplesSample) => {
+        if (sample.attributes) {
+          return {
+            x: sample.location.x,
+            y: sample.location.y,
+            time: sample.attributes?.StdTime ?? timeRange[0],
+            date: new Date(sample.attributes?.StdTime ?? timeRange[0] ),
+            // variable: safeParseNumber(sample.attributes[this.variable] ?? ''),
+            variable: safeParseNumber(this.variable in sample.attributes ? sample.attributes[this.variable] : ''),
+            value: safeParseNumber(sample.value),
+            locationId: sample.locationId,
+            geometryType: this.isRectBounds(geometry) ? 'rectangle' : 'point' as 'rectangle' | 'point'
+          };
+        } else {
+          return {
+            x: sample.location.x,
+            y: sample.location.y,
+            time: timeRange[0],
+            date: new Date(timeRange[0] ),
+            // variable: safeParseNumber(sample.attributes[this.variable] ?? ''),
+            variable: this.variable,
+            value: safeParseNumber(sample.value),
+            locationId: sample.locationId,
+            geometryType: this.isRectBounds(geometry) ? 'rectangle' : 'point' as 'rectangle' | 'point'
+          };
+        }}); // this is a CEsriTimeseries[]
       return {
         samples: processedSamples,
         metadata: {

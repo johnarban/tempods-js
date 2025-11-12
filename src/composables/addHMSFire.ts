@@ -8,6 +8,31 @@ import { useKML } from './useKML';
 export type InternalMapLayerEventType = M.MapMouseEvent & {features?: M.MapGeoJSONFeature[];};
 export type InternalMapLayerEventTypeHandler = (e: InternalMapLayerEventType) => void;
 
+export const replaceYearDay = (s: string | null): string | null => {
+  if (!s) return null;
+  const m = s.match(/(YearDay: )(\d{7})/);
+  if (!m) return null;
+  const [, prefix, ydd] = m;
+  const y = parseInt(ydd.substring(0, 4));
+  const d = parseInt(ydd.substring(4));
+  const dateStr = new Date(y, 0, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  
+  return s.replace(m[0], prefix + dateStr);
+};
+
+import { glccLabel } from '../utils/glcc';
+
+export const replaceEcosystem = (s: string | null): string | null => {
+  if (!s) return null;
+  const m = s.match(/(Ecosystem: )(\d+)/);
+  if (!m) return s;
+  const [, prefix, numStr] = m;
+  const label = glccLabel(parseInt(numStr));
+  
+  return s.replace(m[0], prefix + label);
+};
+
+
 export interface HMSLayer {
   addToMap: (map: M.Map) => Promise<void>
   removeFromMap: (map: M.Map) => void
@@ -172,7 +197,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
 
   
   function setupLayerPopup(map: M.Map, layerId: string) {
-    const popup = new Popup({ closeButton: false, closeOnClick: false, maxWidth: '200px' });
+    const popup = new Popup({ closeButton: false, closeOnClick: false, maxWidth: '200px', className: 'hms-popup' });
     const onEnter = (e: InternalMapLayerEventType) => {
       map.getCanvas().style.cursor = 'pointer';
       const f = e.features && e.features[0];
@@ -180,7 +205,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
         const desc = f?.properties?.description ; 
         popup
           .setLngLat(e.lngLat)
-          .setHTML(desc)
+          .setHTML(replaceEcosystem(replaceYearDay(desc)) || '')
           .addTo(map)
           .addClassName('hms-popup');
       }
@@ -189,7 +214,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       popup.setLngLat(e.lngLat);
       const f = e.features && e.features[0];
       if (f?.properties?.description) {
-        popup.setHTML(f?.properties?.description);
+        popup.setHTML(replaceEcosystem(replaceYearDay(f?.properties?.description)) || '');
       }
     };
     const onLeave = () => {
@@ -317,7 +342,11 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
             'icon-allow-overlap': true,
             'visibility': lastKnownVisible.value ? 'visible' : 'none'
           },
-          filter: ['>', ['get', 'FRP'], 1]
+          filter: [
+            'all',
+            ['>', ['get', 'FRP'], 1],
+            ['>', ['get', 'YearDay'], yearDay.value - 1]
+          ]
         });
         
         
@@ -428,6 +457,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
 
   // Watch for URL changes to auto-reload (will be idempotent due to early return)
   watch(kmlUrl, (newUrl) => {
+    console.log('=====================', yearDay.value);
     setUrl(newUrl).catch(err => {
       console.error('HMS: Error reloading KML after URL change:', err);
     });
