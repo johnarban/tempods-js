@@ -12,7 +12,7 @@
       <!-- Single Date -->
       <div class="time-range-single" v-if="timeRange.config && timeRange.config.type==='single'">
         <div class="time-range-config-name">
-          {{ (new Date(timeRange.config.singleDate)).toLocaleDateString()}}
+          {{ (new Date(timeRange.config.singleDate)).toLocaleDateString(undefined, { timeZone: 'UTC'})}}
         </div>
       </div>
       
@@ -66,9 +66,9 @@ import type { TimeRange } from '@/types';
 
 const formatDate = (date: Date): string => {
   try {
-    return (new Date(date)).toLocaleDateString();
+    return (new Date(date)).toLocaleDateString(undefined, { timeZone: 'UTC' });
   } catch (e) {
-    console.log(date);
+    console.error('Format Date in TimeRangeCard', date);
     return String(date);
   }
 };
@@ -77,7 +77,7 @@ const props = defineProps<{
   name?: string;
   timeRange: TimeRange;
 }>();
-console.log('TimeRangeCard props:', props.timeRange.config);
+// console.log('TimeRangeCard props:', props.timeRange.config);
 </script>
     
 

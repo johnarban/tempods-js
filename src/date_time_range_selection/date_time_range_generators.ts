@@ -3,6 +3,7 @@
 import { TimeSeriesFolder } from "@/esri/services/aggregation";
 import { MillisecondRange, TimeRangeSelectionType} from "@/types/datetime";
 import { parseTimeString, _normalizeTimes, formatTimeHHMM24 } from "@/utils/parse_time_strings";
+import { isRingConsecutive } from "@/utils/array_operations/cyclic";
 
 // "as const" is required to use typeof inference later
 export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
@@ -111,7 +112,34 @@ function genOneMonthRange(date: number): MillisecondRange {
   return { start: start.getTime(), end: end.getTime() };
 }
 
-
+function mergeOverlappingOrConsecutiveRanges(ranges: MillisecondRange[], adjacentOnly: boolean = false): MillisecondRange[] {
+  if (ranges.length <= 1) {
+    return ranges;
+  }
+  
+  const merged: MillisecondRange[] = [];
+  let current = ranges[0];
+  
+  for (let i = 1; i < ranges.length; i++) {
+    const next = ranges[i];
+    
+    // Check if ranges overlap or are adjacent
+    // Overlap: next.start <= current.end + 1
+    // Adjacent: next.start === current.end + 1
+    const merge = adjacentOnly ? (next.start === current.end + 1) : (next.start <= current.end + 1);
+    if (merge) {
+      current = {
+        start: current.start,
+        end: Math.max(current.end, next.end)
+      };
+    } else {
+      merged.push(current);
+      current = next;
+    }
+  }
+  merged.push(current);
+  return merged;
+}
 
 /** 
 Generate all of the hour ranges for a single day.
@@ -120,6 +148,8 @@ If no times are provided, return the full day range.
 
 Otherwise, each time generates a range range that is {time - toleranceMs, time + toleranceMs}.
 The range will be left-inclusive, right-exclusive: [start, end)
+
+Multiple time ranges that overlap or are adjacent will be merged into continuous ranges.
 */
 function genHoursForOneDay(date: number, times: string[] | undefined, toleranceMs: [number, number] = [DEFAULT_TOLERANCE[0] * MS_IN_HOUR, DEFAULT_TOLERANCE[1] * MS_IN_HOUR]): MillisecondRange[] {
   const ranges: MillisecondRange[] = [];
@@ -147,7 +177,13 @@ function genHoursForOneDay(date: number, times: string[] | undefined, toleranceM
       ranges.push({ start: start.getTime() - toleranceMsBefore, end: start.getTime() + toleranceMsAfter - 1 });
     }
   }
-  return ranges;
+  
+  // Sort ranges by start time and merge overlapping/adjacent ranges
+  ranges.sort((a, b) => a.start - b.start);
+  
+  const merged = mergeOverlappingOrConsecutiveRanges(ranges, false);
+  
+  return merged;
 }
 
 function advanceDateToNextMonth(date: Date): Date {
@@ -166,6 +202,20 @@ function advanceDateToNextYear(date: Date): Date {
   newDate.setUTCDate(1);
   newDate.setUTCHours(0, 0, 0, 0);
   return newDate;
+}
+
+
+/**
+ * Merges consecutive/adjacent ranges when appropriate based on the filter configuration.
+ */
+function mergeConsecutiveRanges(ranges: MillisecondRange[], shouldMerge: boolean): MillisecondRange[] {
+  if (ranges.length <= 1 || !shouldMerge) {
+    return ranges;
+  }
+  
+  const merged = mergeOverlappingOrConsecutiveRanges(ranges, true);
+  
+  return merged;
 }
 
 
@@ -285,8 +335,37 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple): MillisecondRa
     currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
   
-  console.log(`Generated ${ranges.length} time ranges based on pattern.`);
-  return ranges;
+  
+  // Determine if we should merge consecutive ranges
+  // We merge if:
+  // 1. We're at year or month granularity (no finer filters), OR
+  // 2. The filtered months/weekdays are cyclically consecutive (wrapping around)
+  let shouldMerge = !needsFinerThanYears || !needsFinerThanMonths;
+  
+  // Check for cyclically consecutive months (e.g., Nov, Dec, Jan, Feb)
+  if (filterOnMonths && config.months && !needsFinerThanMonths) {
+    const monthCheck = isRingConsecutive(config.months, [...MONTHS], false);
+    if (monthCheck.consecutive) {
+      // console.log(`Detected cyclically consecutive months: ${monthCheck.start} to ${monthCheck.end}`);
+      shouldMerge = true;
+    }
+  }
+  
+  // Check for cyclically consecutive weekdays (e.g., Sat, Sun, Mon)
+  if (filterOnWeekdays && config.weekdays && !needsFinerThanWeekdays) {
+    const weekdayCheck = isRingConsecutive(config.weekdays, [...DAYS], false);
+    if (weekdayCheck.consecutive) {
+      // console.log(`Detected cyclically consecutive weekdays: ${weekdayCheck.start} to ${weekdayCheck.end}`);
+      shouldMerge = true;
+    }
+  }
+  
+  const mergedRanges = mergeConsecutiveRanges(ranges, shouldMerge);
+  if (mergedRanges.length < ranges.length) {
+    // console.log(`Merged ${ranges.length - mergedRanges.length} consecutive ranges. Now ${mergedRanges.length} ranges.`);
+  }
+  
+  return mergedRanges;
 }
     
 
@@ -316,33 +395,36 @@ function dateInRange(date: number, start: Date, end: Date): boolean {
 /**
  * Validate a range that should match a time point with tolerance
  * (e.g., "14:00" with ±0.5h tolerance)
+ * Since we merge contiguous/overlappying ranges, we will check if 
+ * the desired configured time point (with tolerance) overlaps within the range.
+ * 
  */
 function validateTimePointRange(
   range: MillisecondRange, 
   configuredTime: string, 
   toleranceMs: [number, number]
 ): boolean {
-  // The range should be approximately: configuredTime ± toleranceMs
-  const rangeDuration = range.end - range.start + 1; // +1 because end is inclusive
-  const expectedDuration = toleranceMs[0] + toleranceMs[1];
+  // Parse the configured time to get the center point
+  const parsed = parseTimeString(configuredTime);
+  if (!parsed) return false;
   
-  // Check if duration matches expected (with some tolerance for rounding)
-  const durationTolerance = 0.01 * expectedDuration; // 1% tolerance
-  if (Math.abs(rangeDuration - expectedDuration) > durationTolerance) {
-    return false;
-  }
+  const { hour, minute } = parsed;
   
-  // Calculate the center time of the range
-  const centerTime = (range.start + toleranceMs[0] + range.end + 1 - toleranceMs[1]) / 2;
-  const centerDate = new Date(centerTime);
-  const centerTimeStr = centerDate.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'UTC'
-  }).replace(/^24/, '00'); // Handle edge case where 24:00 should be 00:00
+  // Get the date from the range start (they should be on the same day)
+  const rangeStartDate = new Date(range.start);
+  const targetDate = new Date(rangeStartDate);
+  targetDate.setUTCHours(hour, minute, 0, 0);
+  const targetTime = targetDate.getTime();
   
-  return centerTimeStr === formatTimeHHMM24(parseTimeString(configuredTime)!);
+  // Check if the target time (with tolerance) is within  the range
+  // The configured time point should be within the range when accounting for tolerance
+  const targetWithToleranceStart = targetTime - toleranceMs[0];
+  const targetWithToleranceEnd = targetTime + toleranceMs[1] - 1;
+  
+  // Check for overlap: target time range overlaps with the actual range
+  // const overlaps = targetWithToleranceStart <= range.end && targetWithToleranceEnd >= range.start;
+  const within = targetWithToleranceStart >= range.start && targetWithToleranceEnd <= range.end;
+  return within;
 }
 
 /**
@@ -416,7 +498,7 @@ export function validateRanges(ranges: MillisecondRange[], config: TimeRangeConf
     // check that all ranges fall within the date range
     ranges.forEach(r => {
       if (!dateInRange(r.start, startDate, endDate) || !dateInRange(r.end, startDate, endDate)) {
-        console.log('Range out of date range:', r, 'Date Range:', startDate, endDate);
+        // console.log('Range out of date range:', r, 'Date Range:', startDate, endDate);
         valid = false;
         count += 1;
         badRanges.push(r);

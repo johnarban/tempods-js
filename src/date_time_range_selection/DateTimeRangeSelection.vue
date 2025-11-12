@@ -353,7 +353,11 @@ const timeRangeStart = computed<Date | null>(() => {
   if (tab.value === 'monthrange') {
     // For month range, start from Jan 1 of the earliest selected year and month
     const year = selectedYears.value.length > 0 ? Math.min(...selectedYears.value) : new Date().getFullYear();
-    const month = selectedMonths.value.length > 0 ? MONTHS.indexOf(selectedMonths.value[0]) : 0;
+    const minMonth = selectedMonths.value.reduce((min, month) => {
+      const monthIndex = MONTHS.indexOf(month);
+      return monthIndex < min ? monthIndex : min;
+    }, 11);
+    const month = selectedMonths.value.length > 0 ? minMonth : 0;
     return new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
   }
   if (!startDateObj.value) return null;
@@ -370,7 +374,11 @@ const timeRangeEnd = computed<Date | null>(() => {
   if (tab.value === 'monthrange') {
     // For month range, end at Dec 31 of the latest selected year and month
     const year = selectedYears.value.length > 0 ? Math.max(...selectedYears.value) : new Date().getFullYear();
-    const month = selectedMonths.value.length > 0 ? MONTHS.indexOf(selectedMonths.value[selectedMonths.value.length - 1]) : 11;
+    const maxMonth = selectedMonths.value.reduce((max, month) => {
+      const monthIndex = MONTHS.indexOf(month);
+      return monthIndex > max ? monthIndex : max;
+    }, 0);
+    const month = selectedMonths.value.length > 0 ? maxMonth : 11;
     // Get last day of month
     const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
     return new Date(Date.UTC(year, month, lastDay, 23, 59, 59, 999));
@@ -528,7 +536,7 @@ const submissionTried = ref<boolean>(false);
 // Update custom range button handler
 function updateCustomRange(doEmit=true) {
   let currentRanges: MillisecondRange[] = [];
-  currentRanges = generateTimeRanges(timeRangeConfig.value, true);
+  currentRanges = generateTimeRanges(timeRangeConfig.value, doEmit);
   
   // Filter ranges to only include those with allowed dates
   if (props.allowedDates && props.allowedDates.length > 0) {
@@ -541,6 +549,10 @@ function updateCustomRange(doEmit=true) {
     emit('ranges-change', currentRanges, timeSelectionMode.value, customTimeRangeName.value, timeRangeConfig.value);
   }
 }
+
+watch(timeRangeConfig, () => {
+  if (props.validTimes) updateCustomRange(false);
+}, { immediate: true, deep: true });
 
 function handleSingleDateChange(value: Date) {
   if (value && value.getTime() !== singleDateObj.value?.getTime()) {
@@ -557,7 +569,7 @@ import { watchGoldenLayoutContainerSize } from '@/utils/golden_layout';
 // === LIFECYCLE HOOKS ===
 onMounted(() => {
   if (dtrsRoot.value) {
-    console.log(dtrsRoot.value);
+    // console.log(dtrsRoot.value);
     watchGoldenLayoutContainerSize(dtrsRoot.value as HTMLElement, (size) => {
       glContainerSize.value = size;
     });
@@ -572,9 +584,9 @@ onMounted(() => {
     endDateObj.value = end;
   }
 });
-watch(glContainerSize, (newSize) => {
-  console.log('DTRS Golden Layout container size changed:', newSize);
-});
+// watch(glContainerSize, (newSize) => {
+//   console.log('DTRS Golden Layout container size changed:', newSize);
+// });
 // === WATCHERS ===
 // Watch for prop changes and update refs
 watch(() => props.currentDate, (newDate) => {

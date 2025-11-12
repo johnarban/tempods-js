@@ -121,14 +121,14 @@ const selectedTimesRef = computed({
     return _selectedTimesRef.value;
   },
   set: (value: string[]) => {
-    console.log('selectedTimesRef set to', value);
+    // console.log('selectedTimesRef set to', value);
     _selectedTimesRef.value = value;
   }
 });
 
 
 watch(selectedTimesRef, (value: string[]) => {
-  console.log('selectedTimesRef changed to', value);
+  // console.log('selectedTimesRef changed to', value);
   if (allDay.value) {
     selectedTimes.value = [];
     return;

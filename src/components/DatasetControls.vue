@@ -152,11 +152,12 @@
                     <TimeRangeCard 
                     :name="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
                     :time-range="timeRange" />
-                  </template>
-                  <template #append>
+
+                  <div class="time-range-action-buttons">
                     <v-btn
                       v-if="timeRange.id !== 'displayed-day'"
                       variant="plain"
+                      size="x-small"
                       v-tooltip="'Edit Name'"
                       icon="mdi-pencil"
                       color="white"
@@ -168,12 +169,14 @@
                     <v-btn
                       v-if="timeRange.id !== 'displayed-day' && !datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
                       variant="plain"
+                      size="x-small"
                       v-tooltip="'Delete'"
                       icon="mdi-delete"
                       color="white"
                       @click="() => store.deleteTimeRange(timeRange)"
                     >
                     </v-btn>
+                  </div>
                   </template>
                 </v-list-item>
               </v-list>
@@ -929,10 +932,11 @@ function handleDateTimeRangeSelectionChange(
   }
   console.log(`Received ${timeRanges.length} time ranges of type ${selectionType} and name ${customName}`);
   const normalized = atleast1d(timeRanges);
+  const countTimeRanges = store.timeRanges.length;
   // No dedup tracking now
   const tr: TimeRange = {
     id: v4(),
-    name: customName,
+    name: `Time Range ${countTimeRanges + 1}`,
     description: customName,
     range: normalized.length === 1 ? normalized[0] : normalized,
     type: selectionType,
@@ -1236,5 +1240,9 @@ watch(tableSelection, (newVal) => {
 .dataset-loading {
   display: flex;
   align-items: center;
+}
+
+.time-range-action-buttons {
+  text-align: right;
 }
 </style>

@@ -183,7 +183,7 @@ export function useTimezone(selectedTimezone: Ref<string>) {
       { tz: 'US/Eastern', name: dateIsDST ? 'Eastern Daylight' : 'Eastern Standard' },
       { tz: 'US/Central', name: dateIsDST ? 'Central Daylight' : 'Central Standard' },
       { tz: 'US/Mountain', name: dateIsDST ? 'Mountain Daylight' : 'Mountain Standard' },
-      { tz: 'US/Arizona', name: 'Mountain Standard' },
+      { tz: 'US/Arizona', name: 'Mountain Standard (AZ)' },
       { tz: 'US/Pacific', name: dateIsDST ? 'Pacific Daylight' : 'Pacific Standard' },
       { tz: 'US/Alaska', name: dateIsDST ? 'Alaska Daylight' : 'Alaska Standard' },
       { tz: 'UTC', name: 'UTC' },

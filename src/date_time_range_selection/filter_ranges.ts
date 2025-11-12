@@ -46,7 +46,7 @@ export function filterForAllowedDates(
   
   let rangeIndex = 0; // Pointer for the input ranges (N)
   let dayIndex = 0;   // Pointer for the allowed full-day ranges (M)
-  let rejectedCount = 0;
+  let _rejectedCount = 0;
 
   while (rangeIndex < ranges.length && dayIndex < allowedDayRanges.length) {
     const currentRange = ranges[rangeIndex];
@@ -68,7 +68,7 @@ export function filterForAllowedDates(
       // If the current time range ENDS BEFORE the allowed day STARTS, 
       // the time range is too early. Advance the time range pointer.
       if (currentRange.end < currentDayRange.start) {
-        rejectedCount++;
+        _rejectedCount++;
         rangeIndex++;
       }
       
@@ -82,6 +82,6 @@ export function filterForAllowedDates(
       // in the 'else' block must be true if there is no overlap.
     }
   }
-  console.log(`filterForAllowedDates: Rejected ${rejectedCount} ranges/dates.`);
+  // console.log(`filterForAllowedDates: Rejected ${rejectedCount} ranges/dates.`);
   return filteredRanges;
 }
