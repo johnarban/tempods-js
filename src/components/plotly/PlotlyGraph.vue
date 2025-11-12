@@ -229,15 +229,26 @@ function renderPlot() {
   newPlot(graph.value ?? id, plotlyData, layout, {...props.configOptions}).then((el: PlotlyHTMLElement) => {
     plot.value = el;
     el.on("plotly_click", (data: PlotMouseEvent) => {
+      console.log("plotly_click event fired", data);
       data.points.forEach(point => {
+        console.log("Processing point:", { 
+          curveNumber: point.curveNumber, 
+          x: point.x, 
+          y: point.y,
+          customdata: point.customdata,
+          isErrorTrace: errorTraces.includes(point.curveNumber)
+        });
+        
+        // Skip error traces (upper/lower bands) but allow clicks on all data traces
         const traceIndex = point.curveNumber;
-        if (traceIndex !== 0 || point.x == null || point.y == null) {
+        const isErrorTrace = errorTraces.includes(traceIndex);
+        if (isErrorTrace || point.x == null || point.y == null) {
+          console.log("Skipping point - errorTrace:", isErrorTrace, "x null:", point.x == null, "y null:", point.y == null);
           return;
         }
         const date = datumToDate(point.x);
-        if (date !== null) {
-          emit("click", {x: point.x, y: point.y as number, customdata: point.customdata} );
-        }
+        console.log("Emitting click event with:", {x: point.x, y: point.y, customdata: point.customdata, date});
+        emit("click", {x: point.x, y: point.y as number, customdata: point.customdata} );
       });
     });
     el.on('plotly_legendclick', (data) => {

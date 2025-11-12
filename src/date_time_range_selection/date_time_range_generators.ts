@@ -40,6 +40,8 @@ export interface TimeRangeConfigMultiple {
   weekdays: DayType[] | undefined; // 0 (Sun) - 6 (Sat)
   times: string[] | undefined; // 'HH:MM' format
   toleranceHours: [number, number] | undefined; // [before, after] tolerance in hours around each time
+  parcel?: boolean; // Whether to split long ranges into smaller parcels
+  parcelSize?: number; // Maximum parcel size in milliseconds
 }
 
 export type TimeRangeConfig = TimeRangeConfigSingle | TimeRangeConfigMultiple;
@@ -49,7 +51,7 @@ export type TimeRangeConfig = TimeRangeConfigSingle | TimeRangeConfigMultiple;
  * 
  * This should only be applied after all other time range filtering has been done.
  */
-function parcelLongRange(range: MillisecondRange, maxParcelSize: number): MillisecondRange[] {
+export function parcelLongRange(range: MillisecondRange, maxParcelSize: number): MillisecondRange[] {
   const parcels: MillisecondRange[] = [];
   let currentStart = range.start;
   if (range.end - range.start <= maxParcelSize) {
@@ -65,7 +67,7 @@ function parcelLongRange(range: MillisecondRange, maxParcelSize: number): Millis
   return parcels;
 }
 
-function parcelRanges(ranges: MillisecondRange[], maxParcelSize: number): MillisecondRange[] {
+export function parcelRanges(ranges: MillisecondRange[], maxParcelSize: number): MillisecondRange[] {
   const allParcels: MillisecondRange[] = [];
   for (const range of ranges) {
     const parcels = parcelLongRange(range, maxParcelSize);
@@ -370,7 +372,7 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple): MillisecondRa
     
 
 
-export function generateTimeRanges(config: TimeRangeConfig, parcel: boolean = true): MillisecondRange[] {
+export function generateTimeRanges(config: TimeRangeConfig, parcel: boolean = false): MillisecondRange[] {
   const ranges: MillisecondRange[] = [];
   
   if (config.type === 'single') {
@@ -379,7 +381,9 @@ export function generateTimeRanges(config: TimeRangeConfig, parcel: boolean = tr
   
   if (config.type === 'multiple') {
     const range = generatePatternedRanges(config, );
-    return parcel ? parcelRanges(range, 7 * MS_IN_DAY) : range;
+    const shouldParcel = config.parcel ?? parcel;
+    const parcelSizeMs = config.parcelSize ?? 7 * MS_IN_DAY;
+    return shouldParcel ? parcelRanges(range, parcelSizeMs) : range;
   }
     
     
