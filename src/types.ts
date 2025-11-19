@@ -6,6 +6,16 @@ import { type MaybeRef, type Ref, toValue } from 'vue';
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type Prettify<T> = { [K in keyof T]: T[K]; } & {};
 
+// https://stackoverflow.com/a/64932909/11594175
+export type AnyCase<T extends string> =
+    string extends T ? string :
+    T extends `${infer F1}${infer F2}${infer R}` ? (
+        `${Uppercase<F1> | Lowercase<F1>}${Uppercase<F2> | Lowercase<F2>}${AnyCase<R>}`
+    ) :
+    T extends `${infer F}${infer R}` ? `${Uppercase<F> | Lowercase<F>}${AnyCase<R>}` :
+    "";
+
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
 type LocationOrderedPair<T extends string> = [number, number] & {_order: T};
 

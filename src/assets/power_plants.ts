@@ -1,3 +1,6 @@
+// https://gis-fema.hub.arcgis.com/datasets/b063316fac7345dba4bae96eaa813b2f/explore?location=42.846684%2C-88.200094%2C9.54&showTable=true
+// https://gis-fema.hub.arcgis.com/datasets/b063316fac7345dba4bae96eaa813b2f/about
+// Captured Octo 16 2025
 /* eslint-disable @typescript-eslint/naming-convention */
 // Type Generated with "Paste JSON as Code" extension for VSCode
 export interface PowerPlants {

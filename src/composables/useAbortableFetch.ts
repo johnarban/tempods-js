@@ -25,6 +25,7 @@ export function useAbortableFetch() {
   function abortableFetch(input: string | Request | URL, init?: RequestInit): Promise<Response> {
     const controller = new AbortController();
     const signal = controller.signal;
+    console.log('useAbortableFetch: Created new AbortController', controller);
     abortController.value = controller;
 
     loading.value = true;
@@ -42,6 +43,7 @@ export function useAbortableFetch() {
         throw err;
       })
       .finally(() => {
+        console.log('useAbortableFetch: Fetch completed, cleaning up');
         loading.value = false;
         abortController.value = null;
       });

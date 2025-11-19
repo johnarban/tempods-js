@@ -1,4 +1,4 @@
-import { ref, watch, computed, type WritableComputedRef, type Ref, onBeforeUnmount } from 'vue';
+import { ref, computed, type WritableComputedRef, type Ref, onBeforeUnmount } from 'vue';
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
 import { useKML } from './useKML';
@@ -72,7 +72,7 @@ export interface UseKMLOptions {
 
 
 export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
-  const { kmlUrl, geoJsonData, loading, error, setUrl: internalSetUrl, loadKML, cleanUp } = useKML(url);
+  const { geoJsonData, loading, error, setUrl: internalSetUrl, loadKML, cleanUp } = useKML(url);
 
   const propertyToShow = options.propertyToShow ?? null;
   const labelMinZoom = options.labelMinZoom ?? 8;
@@ -356,11 +356,6 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
   };
 
   // Watch for URL changes to auto-reload (will be idempotent due to early return)
-  watch(kmlUrl, (newUrl) => {
-    setUrl(newUrl).catch(err => {
-      console.error('AQI: Error reloading KML after URL change:', err);
-    });
-  });
 
   // Remove from map
   const removeFromMap = (map: M.Map): void => {

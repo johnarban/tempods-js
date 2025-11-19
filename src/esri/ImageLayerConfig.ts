@@ -3,8 +3,9 @@
 
 // const earthdataRestSerivceURL = "https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer";
 import { Variables } from './types';
+import { AllAvailableColorMaps } from '@/colormaps';
 
-export type ColorRamps = "Magma" | "Inferno" | "Plasma" | "Viridis" | "Gray" | "Hillshade" | "Cividis" | "SVS" | "sargassum";
+export type ColorRamps = "Magma" | "Inferno" | "Plasma" | "Viridis" | "Gray" | "Hillshade" | "Cividis" | AllAvailableColorMaps;
 
 type PixelType = "C128" | "C64" | "F32" | "F64" | "S16" | "S32" | "S8" | "U1" | "U16" | "U2" | "U32" | "U4" | "U8" | "UNKNOWN";
 
@@ -21,7 +22,8 @@ interface RasterFunctionObject {
 
 // https://developers.arcgis.com/rest/services-reference/enterprise/raster-function-objects/
 // https://developers.arcgis.com/rest/services-reference/enterprise/raster-function-objects/#resample
-export function _stretchRule(min: number, max: number): RasterFunctionObject {
+// https://pro.arcgis.com/en/pro-app/latest/help/analysis/raster-functions/stretch-function.htm
+export function _stretchRule(min: number, max: number, reverse: boolean): RasterFunctionObject {
   return {
     'rasterFunction': 'Stretch',
     'outputPixelType': 'U8' as PixelType,
@@ -37,31 +39,78 @@ export function _stretchRule(min: number, max: number): RasterFunctionObject {
       'UseGamma': false,
       'Gamma': [1],
       'ComputeGamma': true,
-      'Min': 255,
-      'Max': 0
+      'Min': reverse ? 255 : 0,
+      'Max': reverse ? 0 : 255,
     },
   };
 }
 
+//https://pro.arcgis.com/en/pro-app/latest/arcpy/spatial-analyst/convolution.html
+//https://developers.arcgis.com/rest/services-reference/enterprise/raster-function-objects/#convolution
+export function _convolutionRule(size: 3 | 5): RasterFunctionObject {
+  return {
+    'rasterFunction': 'Convolution',
+    'rasterFunctionArguments': {
+      "Type": size === 3 ? 11 : size === 5 ? 12 : 11,
+    },
+    'variableName': 'Raster',
+  };
+}
+
 export const stretches = {
-  'NO2_Troposphere': [0, 15000000000000000],
+  'NO2_Troposphere': [0, 15_000_000_000_000_000],
   'Ozone_Column_Amount': [250, 430], // +- 2 sigma
-  'HCHO': [0, 50000000000000000],
+  'HCHO': [1_000_000_000_000_000, 30_000_000_000_000_000],
 } as Record<Variables, [number, number]>;
 export const colorramps = {
-  'NO2_Troposphere': 'Magma',
-  'Ozone_Column_Amount': 'Cividis', 
-  'HCHO': 'Viridis',
+  'NO2_Troposphere': 'Magma_r',
+  'Ozone_Column_Amount': 'Cividis_r', 
+  'HCHO': 'Viridis_r',
 } as Record<Variables, ColorRamps>;
 
 export const colorbarOptions = {
-  'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label:'NO<sub>2</sub>&nbsp;&nbsp;'},
-  'no2Monthly': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label: 'NO<sub>2</sub>&nbsp;&nbsp;'},
-  'no2DailyMax': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label: 'NO<sub>2</sub>&nbsp;&nbsp;'},
-  'o3': {stretch: stretches['Ozone_Column_Amount'], cbarScale: 1, colormap: colorramps['Ozone_Column_Amount'] + '_r', label: 'Ozone&nbsp;'},
-  'hcho': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
-  'hchoMonthly': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
-  'hchoDailyMax': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
+  'no2': {
+    stretch: stretches['NO2_Troposphere'], 
+    cbarScale: 1e14, 
+    colormap: colorramps['NO2_Troposphere'], 
+    label:'NO<sub>2</sub>'
+  },
+  'no2Monthly': {
+    stretch: stretches['NO2_Troposphere'], 
+    cbarScale: 1e14, 
+    colormap: colorramps['NO2_Troposphere'], 
+    label: 'NO<sub>2</sub>'
+  },
+  'no2DailyMax': {
+    stretch: stretches['NO2_Troposphere'], 
+    cbarScale: 1e14, 
+    colormap: colorramps['NO2_Troposphere'], 
+    label: 'NO<sub>2</sub>'
+  },
+  'o3': {
+    stretch: stretches['Ozone_Column_Amount'], 
+    cbarScale: 1, 
+    colormap: colorramps['Ozone_Column_Amount'], 
+    label: 'Ozone'
+  },
+  'hcho': {
+    stretch: stretches['HCHO'], 
+    cbarScale: 1e14, 
+    colormap: colorramps['HCHO'], 
+    label: 'Formaldehyde'
+  },
+  'hchoMonthly': {
+    stretch: stretches['HCHO'], 
+    cbarScale: 1e14, 
+    colormap: colorramps['HCHO'], 
+    label: 'Formaldehyde'
+  },
+  'hchoDailyMax': {
+    stretch: stretches['HCHO'], 
+    cbarScale: 1e14, 
+    colormap: colorramps['HCHO'], 
+    label: 'Formaldehyde'
+  },
 };
 
 import { nonEsriColormaps } from '@/colormaps';
@@ -69,6 +118,7 @@ import { nonEsriColormaps } from '@/colormaps';
 
 export function _colorMapRule(colorRamp: ColorRamps): RasterFunctionObject {
   if (Object.keys(nonEsriColormaps).includes((colorRamp as string).toLowerCase())) {
+    // console.log('using non esri colormap:', colorRamp);
     return {
       'rasterFunction': 'Colormap',
       'variableName': 'Raster',
@@ -77,6 +127,7 @@ export function _colorMapRule(colorRamp: ColorRamps): RasterFunctionObject {
       },
     };
   }
+  // console.log('using esri colormap:', colorRamp);
   return {
     'rasterFunction': 'Colormap',
     'variableName': 'Raster',
@@ -103,7 +154,7 @@ export enum ResamplingTypeEnum {
 }
 
 
-// Generated by Copilot
+
 export function _resampleRule(resamplingType: keyof typeof ResamplingTypeEnum): RasterFunctionObject {
   return {
     'rasterFunction': 'Resample',
@@ -116,14 +167,20 @@ export function _resampleRule(resamplingType: keyof typeof ResamplingTypeEnum): 
 
 
 export function composeRasterRules(
-  baseRule: RasterFunctionObject,
-  additionalRules: RasterFunctionObject[]
+  ...rules: RasterFunctionObject[]
 ): RasterFunctionObject {
-  let currentRule: RasterFunctionObject = { ...baseRule };
+  if (rules.length === 0) {
+    throw new Error('composeRasterRules requires at least one rule');
+  }
 
+  if (rules.length === 1) {
+    return { ...rules[0] };
+  }
 
-  for (let i = 0; i < additionalRules.length; i++) {
-    const nextOuterRule = { ...additionalRules[i] }; // Copy to avoid modifying original rule objects
+  let currentRule: RasterFunctionObject = { ...rules[0] };
+
+  for (let i = 1; i < rules.length; i++) {
+    const nextOuterRule = { ...rules[i] }; // Copy to avoid modifying original rule objects
 
     // Ensure rasterFunctionArguments exists
     if (!nextOuterRule.rasterFunctionArguments) {
@@ -139,8 +196,18 @@ export function composeRasterRules(
   return currentRule;
 }
 
-export const renderingRule = (range: [number, number], colormap: ColorRamps, resamplineRule: keyof typeof ResamplingTypeEnum = 'NearestNeighbor') => 
-  composeRasterRules(_stretchRule(Math.min(...range), Math.max(...range)), [_colorMapRule(colormap), _resampleRule(resamplineRule)]);
+export const renderingRule = (range: [number, number], colormap: ColorRamps, _resamplineRule: keyof typeof ResamplingTypeEnum = 'NearestNeighbor'): RasterFunctionObject => {
+  let reverse = false;
+  let colormapName = colormap;
+  if (colormap.endsWith('_r')) {
+    reverse = true;
+    colormapName = colormap.slice(0, -2) as ColorRamps;
+  }
+  return composeRasterRules(
+    _stretchRule(Math.min(...range), Math.max(...range), reverse), 
+    _colorMapRule(colormapName), 
+  );
+};
 
 export interface RenderingRuleOptions {
   range: [number, number];

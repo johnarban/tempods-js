@@ -64,6 +64,7 @@ export function useKML(url: string): KMLResource {
 
     // Abort any in-flight request
     if (abortController.value) {
+      console.log('useKML: Aborting previous fetch due to new request', abortController.value);
       abort('Aborting previous KML fetch due to new request');
     }
     

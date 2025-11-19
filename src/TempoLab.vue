@@ -24,8 +24,8 @@
         v-model="tab"
         :color="tempoRed"
       >
-        <v-tab :value="0" variant="flat">TEMPO Deep Dive</v-tab>
         <v-tab :value="1" variant="flat">Comparison Data</v-tab>
+        <v-tab :value="0" variant="flat">TEMPO Deep Dive</v-tab>
       </v-tabs>
       
       <v-tabs-window v-model="tab">
@@ -60,7 +60,7 @@ type MaybeHTMLElement = HTMLElement | null;
 const root = useTemplateRef("root");
 const mapTargets = reactive<Record<string, Ref<MaybeHTMLElement>>>({});
 const sidePanelTarget = ref<MaybeHTMLElement>(null);
-const tab = ref(0);
+const tab = ref(1);
 
 
 const store = useTempoStore();

@@ -21,14 +21,14 @@ function clamp(x: number, min: number, max: number): number {
 
 export function colormap(cmap: AllAvailableColorMaps, cmin: number, cmax: number, val: number): [number, number, number]
 { 
-  
   let reversed = false;
   if (cmap.endsWith('_r')) {
     cmap = cmap.slice(0, -2) as AllAvailableColorMaps;
     reversed = true;
   }
   if (!(cmap in colormaps)) {
-    throw new Error(`Colormap ${cmap} not found`);
+    console.log(`Colormap ${cmap} not found, returning gray`);
+    return [128,128,128];
   }
   
   const { r: redValues, g: greenValues, b: blueValues } = colormaps[cmap] as ColorMap;

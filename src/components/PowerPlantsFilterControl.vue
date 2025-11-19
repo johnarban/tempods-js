@@ -79,6 +79,8 @@ import {
 
 import { POWER_PLANT_COLORS } from "@/composables/addPowerPlants";
 
+import { setLayerVisibility } from "@/maplibre_controls";
+
 interface Props {
   map: Map;
   layerId: string;
@@ -145,8 +147,13 @@ function openAllPanels() {
 //   }
 // }
 
+function turnOnPowerPlants() {
+  setLayerVisibility(props.map, "power-plants-layer", true);
+}
+
 function handleGlobalSelect(value: boolean) {
   selectedSources.value = value ? [...Object.values(PrimSource)] : [];
+  turnOnPowerPlants();
 }
 
 function handleCategoryGlobalSelect(category: PlantCategory, value: boolean) {
@@ -163,6 +170,7 @@ function handleCategoryGlobalSelect(category: PlantCategory, value: boolean) {
   } else {
     selectedSources.value = selectedSources.value.filter(item => !SOURCES_BY_CATEGORY[category].includes(item));
   }
+  turnOnPowerPlants();
 }
 
 let layers: LayerSpecification[] = [];
@@ -213,7 +221,10 @@ onMounted(() => {
   applyPrimSourceFilter(selectedSources.value);
 });
 
-watch(selectedSources, applyPrimSourceFilter);
+watch(selectedSources, (sources: PrimSource[]) => {
+  applyPrimSourceFilter(sources);
+  turnOnPowerPlants();
+});
 
 function applyPrimSourceFilter(sources: PrimSource[]) {
   const layerIds = ["power-plants-layer", "power-plants-heatmap"];

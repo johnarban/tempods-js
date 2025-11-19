@@ -105,7 +105,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     return `https://worldwidetelescope.org/webserviceproxy.aspx?targeturl=https://satepsanone.nesdis.noaa.gov/pub/FIRE/web/HMS/Fire_Points/KML/${year}/${month}/hms_fire${year}${month}${day}.kml`;
   });
   
-  const { kmlUrl, geoJsonData, loading, error, setUrl: internalSetUrl, loadKML, cleanUp } = useKML(url.value);
+  const { geoJsonData, loading, error, setUrl: internalSetUrl, loadKML, cleanUp } = useKML(url.value);
   
   watch(url, (newUrl) => {
     setUrl(newUrl).catch(() => {/* ignore */});
@@ -454,14 +454,6 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
         console.error('HMS: Error setting new KML URL:', err);
       });
   };
-
-  // Watch for URL changes to auto-reload (will be idempotent due to early return)
-  watch(kmlUrl, (newUrl) => {
-    console.log('=====================', yearDay.value);
-    setUrl(newUrl).catch(err => {
-      console.error('HMS: Error reloading KML after URL change:', err);
-    });
-  });
 
   // Remove from map
   const removeFromMap = (map: M.Map): void => {

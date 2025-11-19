@@ -38,10 +38,15 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
   const selectionActive = ref<SelectionType>(null);
   const focusRegion = ref<UnifiedRegion | null>(null);
+  const regionOpacity = ref(0.7);
+  const regionVisibility = ref(true);
 
   const showFieldOfRegard = ref(false);
   const showRoads = ref(true);
   const showSamplingPreviewMarkers = ref(false);
+  
+  const showAdvancedLayers = ref(false);
+  const showRGBMode = ref(false);
 
   const selectedTimezone = ref<Timezone>("US/Eastern");
   const { isDST, timezoneOptions: tzOptions } = useTimezone(selectedTimezone);
@@ -348,10 +353,14 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
     selectionActive,
     focusRegion,
+    regionOpacity,
+    regionVisibility,
 
     showFieldOfRegard,
     showRoads,
     showSamplingPreviewMarkers,
+    showAdvancedLayers,
+    showRGBMode,
 
     homeState,
     initState,

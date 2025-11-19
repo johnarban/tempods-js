@@ -127,17 +127,6 @@
           dense
           variant="outlined"
         ></v-select>
-        <v-select
-          v-model="molecule"
-          class="map-dropdowns molecule-dropdown"
-          :items="MOLECULE_OPTIONS"
-          item-title="title"
-          item-value="value"
-          label="Molecule / Quantity"
-          hide-details
-          compact
-          variant="outlined"
-        ></v-select>
       </div>
     </div>
   </div>
@@ -149,7 +138,7 @@ import { storeToRefs } from "pinia";
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
-import { MOLECULE_OPTIONS, type MoleculeType } from "@/esri/utils";
+import { type MoleculeType } from "@/esri/utils";
 import { useTempoStore } from "@/stores/app";
 import { useEsriTimesteps } from "@/composables/useEsriTimesteps";
 

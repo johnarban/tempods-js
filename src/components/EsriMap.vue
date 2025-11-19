@@ -115,6 +115,11 @@ const props = defineProps({
     type: Boolean, 
     required: false, 
     default: true 
+  },
+  maplibreLayerName: {
+    type: String || undefined,
+    required: false,
+    default: undefined
   }
 });
 
@@ -125,6 +130,7 @@ const emit = defineEmits<{
   (e: 'colormap', colormap: AvailableColorMaps): void;
   // Timesteps loaded (can fire multiple times e.g., molecule switch)
   (e:'esri-timesteps-loaded', steps: number[]): void;
+  (e: 'esri-layer', esriLayer: ReturnType<typeof useEsriLayer>)
 }>();
 
 // Reference to inner MaplibreMap exposed API
@@ -154,11 +160,16 @@ const timestampRef = toRef(props, 'timestamp');
 const opacityRef = toRef(props, 'opacity');
 
 // ESRI layer composable
-const { loadingEsriTimeSteps, addEsriSource, esriTimesteps, renderOptions } = useEsriLayer(
+const theEsriLayer = useEsriLayer(
   molecule,
   timestampRef,
-  opacityRef
+  opacityRef,
+  true,
+  props.maplibreLayerName
 );
+
+const { loadingEsriTimeSteps, addEsriSource, esriTimesteps, renderOptions } = theEsriLayer;
+console.log(theEsriLayer);
 
 watch(esriTimesteps, (newSteps, old) => {
   if (newSteps.length > 0 && newSteps !== old) {
@@ -205,6 +216,7 @@ function onInnerMapReady(m: Map) {
   map.value = m;
   // Attach ESRI source right after base readiness (microtask keeps UI snappy)
   addEsriSource(m);
+  emit('esri-layer', theEsriLayer);
   console.log('ESRI source added to map');
   emit('ready', m);
   console.log('map ready event emitted');

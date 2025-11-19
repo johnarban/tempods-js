@@ -75,6 +75,7 @@ export class MaplibreLayerOrderControl extends PsuedoEvent {
   private keepAtTop: boolean;
   private initialized = false;
   private eventHandlers: [string, () => void][] = [];
+  private _layerOrder: string[] = [];
   
   constructor(map: M.Map, initialOrder: string[], options: Options = {}) {
     super();
@@ -115,11 +116,25 @@ export class MaplibreLayerOrderControl extends PsuedoEvent {
   }
   
   get currentlyManagedLayerOrder() {
-    return this.map.
+    this._layerOrder = this.map.
       getLayersOrder().
       filter(l => this.desiredLayerOrder.includes(l));
+    return this._layerOrder;
   }
   
+  private checkLayerChanges() {
+    const orderAtLastCheck = this._layerOrder;
+    const currentOrder = this.currentlyManagedLayerOrder;
+    const val = {
+      removed: orderAtLastCheck.filter(l => !currentOrder.includes(l)),
+      added: currentOrder.filter(l => !orderAtLastCheck.includes(l)),
+    };
+
+    return {
+      ...val, 
+      changed: val.removed.length > 0 || val.added.length > 0,
+    };
+  }
   
   private orderLayers() {
     if (this.keepAtTop) {
@@ -136,7 +151,8 @@ export class MaplibreLayerOrderControl extends PsuedoEvent {
   }
   
   private maintainOrder() {
-    if (!checkArrayEquality(this.availableDesiredOrder, this.currentlyManagedLayerOrder)) {
+    const check = this.checkLayerChanges();
+    if (!checkArrayEquality(this.availableDesiredOrder, this.currentlyManagedLayerOrder) || check.changed) {
       this.orderLayers();
     }
   }

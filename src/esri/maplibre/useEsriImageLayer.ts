@@ -1,6 +1,6 @@
 import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed } from 'vue';
 import { renderingRule, stretches, colorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
-import { Map, type MapSourceDataEvent } from 'maplibre-gl';
+import { type Map, type MapSourceDataEvent } from 'maplibre-gl';
 import { validate as uuidValidate } from "uuid";
 
 import { ImageService } from 'mapbox-gl-esri-sources';
@@ -8,7 +8,7 @@ import { useEsriTimesteps } from '../../composables/useEsriTimesteps';
 import { MoleculeType } from '../utils';
 
 
-interface UseEsriLayer {
+export interface UseEsriLayer {
   esriImageSource: Ref<maplibregl.RasterTileSource | null>;
   opacity: Ref<number>;
   noEsriData: Ref<boolean>;
@@ -17,15 +17,20 @@ interface UseEsriLayer {
   updateEsriOpacity: (value?: number | null | undefined) => void;
   updateEsriTimeRange: () => void;
   addEsriSource: (map: Map) => void;
+  removeEsriSource: () => void;
+  setVisibility: (visible: boolean) => void;
   renderOptions: Ref<RenderingRuleOptions>;
 }
 
 export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
   timestamp: Ref<number | null>,
   opacity: MaybeRef<number>,
-  fetchOnMount=true): UseEsriLayer {
+  fetchOnMount=true,
+  layerName?: string,
+  initVisible?: boolean,
+): UseEsriLayer {
 
-  const esriLayerId = 'esri-source';
+  const esriLayerId = layerName ?? 'esri-source';
   const esriImageSource = ref<maplibregl.RasterTileSource | null>(null);
   const map = ref<Map | null>(null);
   const molecule = toRef(initialMolecule);
@@ -43,7 +48,7 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
   
   const options = computed(() => {
     return  {
-      'format': 'png',
+      'format': 'jpgpng',
       'pixelType': 'U8',
       'size': '256,256',
       'transparent': true,
@@ -63,6 +68,9 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
         id: esriLayerId,
         type: 'raster',
         source: esriLayerId,
+        layout: {
+          visibility: initVisible === false ? 'none' : 'visible',
+        },
         paint: {
           'raster-resampling': 'nearest',
           'raster-opacity': opacityRef.value ?? 0.8,
@@ -91,11 +99,21 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
   function onSourceLoad(e: MapSourceDataEvent) {
     // console.log('Source data event: ', e.sourceId, e.isSourceLoaded);
     if (e.sourceId === esriLayerId && e.isSourceLoaded && map.value?.getSource(esriLayerId)) {
-      console.log('ESRI source loaded with time', new Date(timestamp.value ?? 0 ));
+      console.log(`[${esriLayerId}] ESRI source loaded with time`, new Date(timestamp.value ?? 0 ));
       esriImageSource.value = map.value?.getSource(esriLayerId) as maplibregl.RasterTileSource;
       updateEsriOpacity();
       updateEsriTimeRange();
       map.value?.off('sourcedata', onSourceLoad);
+    }
+  }
+  
+  function setVisibility(visible: boolean) {
+    if (map.value && map.value.getLayer(esriLayerId)) {
+      map.value.setLayoutProperty(
+        esriLayerId, 
+        'visibility', 
+        visible ? 'visible' : 'none'
+      );
     }
   }
   
@@ -125,6 +143,17 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
     mMap.on('sourcedata', onSourceLoad);
   }
   
+  function removeEsriSource() {
+    if (map.value) {
+      if (map.value.getLayer(esriLayerId)) {
+        map.value.removeLayer(esriLayerId);
+      }
+      if (map.value.getSource(esriLayerId)) {
+        map.value.removeSource(esriLayerId);
+      }
+    }
+  }
+  
   function hasEsriSource() {
     return map.value?.getSource(esriLayerId) !== undefined;
   }
@@ -141,14 +170,14 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
     noEsriData.value = Math.abs((nearest - time) / (1000 * 60)) > 60;
     // noEsriData.value = nearest > 1752595200000; // Example condition (July 15, 2025 12pm ET for testing)
     if (noEsriData.value) {
-      console.error('No ESRI data available for the selected time');
+      console.error(`[${esriLayerId}] No ESRI data available for the selected time`, url);
     }
 
     if (dynamicMapService.value && !noEsriData.value) {
       dynamicMapService.value.setDate(new Date(nearest), new Date(nearest * 2));
     } else if (!noEsriData.value) {
       // if there is esri coverage, then this is the issue
-      console.error('Dynamic Map Service is not initialized');
+      console.error(`[${esriLayerId}] Dynamic Map Service is not initialized`);
     }
   }
 
@@ -158,11 +187,11 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
 
 
   watch(timestamp, (_value) => {
-    console.log('esri imageset timestamp set to ', _value ? new Date(_value) : null);
+    console.log(`[${esriLayerId}] esri imageset timestamp set to `, _value ? new Date(_value) : null);
     if ( hasEsriSource() ) {
       updateEsriTimeRange();
     } else {
-      console.error('ESRI source not yet available');
+      console.error(`[${esriLayerId}] ESRI source not yet available`);
     }
   });
   
@@ -191,11 +220,11 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
   }
   
   watch(() => renderOptions.value.range, (newRange) => {
-    console.log('Range changed to ', newRange);
+    console.log(`[${esriLayerId}] Range changed to `, newRange);
     updateStretch(newRange[0], newRange[1]);
   });
   watch(() => renderOptions.value.colormap, (newColormap) => {
-    console.log('Colormap changed to ', newColormap);
+    console.log(`[${esriLayerId}] Colormap changed to `, newColormap);
     updateColormap(newColormap);
   });
   
@@ -226,7 +255,9 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
     updateEsriOpacity,
     updateEsriTimeRange,
     addEsriSource,
+    removeEsriSource,
     renderOptions,
+    setVisibility,
   } as UseEsriLayer;
 }
 

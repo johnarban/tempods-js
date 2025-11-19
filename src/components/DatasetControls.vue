@@ -70,6 +70,24 @@
             ></v-checkbox>
             <div class="my-selections" v-if="regions.length>0" style="margin-top: 1em;">
             <h4>My Regions</h4>                   
+              <v-slider
+                v-model="regionOpacity"
+                :min="0"
+                :max="1"
+                :step="0.01"
+                label="Region Opacity"
+                :color="tempoRed"
+                density="compact"
+                hide-details
+              >
+              </v-slider>
+              <v-checkbox
+                v-model="regionVisibility"
+                label="Show regions"
+                density="compact"
+                hide-details
+              >
+              </v-checkbox>
               <v-list>
                 <v-list-item
                   v-for="(region, index) in regions"
@@ -852,6 +870,9 @@ const {
   selectionActive,
   focusRegion,
   showSamplingPreviewMarkers,
+  regionOpacity,
+  regionVisibility,
+  tempoRed,
 } = storeToRefs(store);
 
 const cssVars = computed(() => {

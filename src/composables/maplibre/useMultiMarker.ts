@@ -13,6 +13,7 @@ export interface MultiMarkerOptions {
   layout?: maplibregl.CircleLayerSpecification['layout'];
   shape?: 'circle' | 'marker';
   scale?: 'world' | 'screen';
+  visible?: boolean;
 }
 
 
@@ -101,13 +102,14 @@ export function useMultiMarker(map: Ref<maplibregl.Map | null>, options: MultiMa
       
       
       
+      const visible = options.visible ?? true;
       map.value.addLayer({
         id: layerId,
         type: 'circle',
         source: sourceId,
         paint: paint,
         layout: options.layout ?? {
-          'visibility': 'visible',
+          visibility: visible ? "visible" : "none",
         },
       } as maplibregl.CircleLayerSpecification);
     }
