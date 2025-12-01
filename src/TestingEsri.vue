@@ -12,9 +12,36 @@
         <v-row>
           <!-- Left Panel: Map and Controls -->
           <v-col cols="12" lg="7">
+            <!-- Step 1: Region Selection -->
             <v-card class="mb-4">
-              <v-card-title>Map & Region Selection</v-card-title>
+              <v-card-title class="d-flex align-center">
+                <v-chip color="primary" variant="flat" size="small" class="mr-2">STEP 1</v-chip>
+                Select Test Region
+                <v-spacer></v-spacer>
+                <info-button tooltip-text="Learn about test regions">
+                  <p><strong>Test Regions</strong></p>
+                  <p>Choose a geographic region to test data fetching. Different region sizes help test performance:</p>
+                  <ul>
+                    <li><strong>Small:</strong> Quick tests, minimal data</li>
+                    <li><strong>Medium:</strong> Moderate data volume</li>
+                    <li><strong>Large:</strong> Performance testing with significant data</li>
+                  </ul>
+                  <p>The map shows your selected region outlined in its designated color.</p>
+                </info-button>
+              </v-card-title>
               <v-card-text>
+                <!-- Instructional Alert -->
+                <v-alert
+                  v-if="!selectedRegion"
+                  type="info"
+                  variant="tonal"
+                  density="compact"
+                  class="mb-3"
+                  icon="mdi-cursor-default-click"
+                >
+                  Click a region chip below to select your test area
+                </v-alert>
+                
                 <!-- Current Map Timestamp Display -->
                 <div v-if="mapTimestamp" class="mb-2 pa-2 bg-blue-grey-lighten-5 rounded text-center">
                   <strong>Current Map Time (UTC):</strong> 
@@ -43,8 +70,10 @@
                   <!-- Region Selection Column -->
                   <v-col cols="12" md="5">
                     <v-card variant="outlined" class="pa-3">
-                      <h4>Test Regions</h4>
-                      <v-chip-group column>
+                      <div class="d-flex align-center mb-2">
+                        <h4>Available Regions</h4>
+                      </div>
+                      <v-chip-group column mandatory>
                         <v-chip
                           v-for="region in predefinedRegions"
                           :key="region.id"
@@ -140,12 +169,33 @@
 
             <!-- Time Range Selection & Fetch Controls Combined -->
             <v-card class="mb-4">
-              <v-card-title>Time Range & Fetch Settings</v-card-title>
+              <v-card-title class="d-flex align-center">
+                <v-chip color="primary" variant="flat" size="small" class="mr-2">STEP 2</v-chip>
+                Select Time Range
+                <v-spacer></v-spacer>
+                <info-button tooltip-text="Learn about time ranges">
+                  <p><strong>Time Range Selection</strong></p>
+                  <p><strong>Presets:</strong> Pre-configured time ranges for common testing scenarios.</p>
+                  <p><strong>Custom:</strong> Create your own time ranges with specific patterns (dates, times, weekdays).</p>
+                  <p>More time ranges = more requests. Use "Dry Run" to preview without fetching data.</p>
+                </info-button>
+              </v-card-title>
               <v-card-text>
+                <!-- Instructional Alert -->
+                <v-alert
+                  v-if="!selectedTimeRange"
+                  type="info"
+                  variant="tonal"
+                  density="compact"
+                  class="mb-3"
+                  icon="mdi-calendar-clock"
+                >
+                  Select a preset time range or create a custom one
+                </v-alert>
+                
                 <v-row>
                   <!-- Time Range Selection -->
                   <v-col cols="12" md="6">
-                    <h4 class="mb-2">Time Range Selection</h4>
                     <v-tabs v-model="timeRangeTab" density="compact">
                       <v-tab value="presets">Presets</v-tab>
                       <v-tab value="custom">Custom</v-tab>
@@ -207,124 +257,204 @@
                   
                   <!-- Fetch Controls -->
                   <v-col cols="12" md="6">
-                    <h4 class="mb-2">Fetch Settings</h4>
-                    <v-row dense>
-                      <v-col cols="12">
-                        <v-text-field
-                          v-model.number="sampleCount"
-                          label="Sample Count"
-                          type="number"
-                          min="1"
-                          max="100"
-                          density="compact"
-                          hide-details
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
+                    <div class="d-flex align-center mb-2">
+                      <v-chip color="primary" variant="flat" size="small" class="mr-2">STEP 3</v-chip>
+                      <h4>Configure & Fetch</h4>
+                      <v-spacer></v-spacer>
+                      <info-button tooltip-text="Learn about fetch settings">
+                        <p><strong>Parceling Mode:</strong> Controls how time ranges are split into requests:</p>
+                        <ul>
+                          <li><strong>None:</strong> Use time ranges as-is (may hit server limits)</li>
+                          <li><strong>Default:</strong> Split into fixed-size chunks</li>
+                          <li><strong>Smart:</strong> Optimize based on available timestamps (recommended)</li>
+                        </ul>
+                        <p><strong>Sample Count:</strong> Spatial samples per timestamp (adjusted to TEMPO grid).</p>
+                        <p><strong>Rate Limiting:</strong> Controls request pacing to avoid server overload.</p>
+                      </info-button>
+                    </div>
                     
-                    <!-- Sample Count Adjustment Info -->
-                    <v-alert
-                      v-if="sampleCountAdjustmentInfo"
-                      :type="sampleCountAdjustmentInfo.type === 'reduced' ? 'warning' : 'info'"
-                      density="compact"
-                      variant="tonal"
-                      class="mt-2 mb-2"
-                    >
-                      <div class="text-caption">
-                        <strong>Actual: {{ actualSampleCount }} samples</strong>
-                        <br />
-                        {{ sampleCountAdjustmentInfo.message }}
+                    <!-- Parceling Configuration (First) -->
+                    <v-card variant="outlined" class="pa-2 mb-2">
+                      <div class="text-caption font-weight-bold mb-2">1. Parceling Strategy</div>
+                      <v-alert
+                        type="info"
+                        variant="tonal"
+                        density="compact"
+                        class="mb-2 text-caption"
+                      >
+                        Splits large time ranges into smaller requests
+                      </v-alert>
+                      
+                      <v-select
+                        v-model="parcelingMode"
+                        label="Parceling Mode"
+                        :items="parcelingModeOptions"
+                        density="compact"
+                        class="mb-2"
+                      ></v-select>
+                      
+                      <!-- Default Mode Settings -->
+                      <v-expand-transition>
+                        <div v-if="parcelingMode === 'default'">
+                          <v-text-field
+                            v-model.number="defaultParcelSizeDays"
+                            label="Parcel Size (days)"
+                            type="number"
+                            min="1"
+                            max="365"
+                            density="compact"
+                            hint="Split time ranges into chunks of this many days"
+                            persistent-hint
+                          ></v-text-field>
+                        </div>
+                      </v-expand-transition>
+                      
+                      <!-- Smart Mode Settings -->
+                      <v-expand-transition>
+                        <div v-if="parcelingMode === 'smart'">
+                          <v-row dense>
+                            <v-col cols="6">
+                              <v-text-field
+                                v-model.number="maxSamplesPerRequest"
+                                label="Max Samples/Request"
+                                type="number"
+                                min="100"
+                                max="10000"
+                                density="compact"
+                                hint="ESRI service limit"
+                                persistent-hint
+                              ></v-text-field>
+                            </v-col>
+                            <v-col cols="6">
+                              <v-text-field
+                                v-model.number="safetyMargin"
+                                label="Safety Margin"
+                                type="number"
+                                min="0.1"
+                                max="1.0"
+                                step="0.05"
+                                density="compact"
+                                hint="Use % of limit"
+                                persistent-hint
+                              ></v-text-field>
+                            </v-col>
+                          </v-row>
+                        </div>
+                      </v-expand-transition>
+                    </v-card>
+                    
+                    <!-- Sample Count (Depends on Parceling) -->
+                    <v-card variant="outlined" class="pa-2 mb-2">
+                      <div class="text-caption font-weight-bold mb-2">2. Samples per Request</div>
+                      <v-text-field
+                        v-model.number="sampleCount"
+                        label="Sample Count"
+                        type="number"
+                        min="1"
+                        max="100"
+                        density="compact"
+                        hide-details
+                      ></v-text-field>
+                    
+                      <!-- Sample Count Adjustment Info -->
+                      <v-alert
+                        v-if="sampleCountAdjustmentInfo"
+                        :type="sampleCountAdjustmentInfo.type === 'reduced' ? 'warning' : 'info'"
+                        density="compact"
+                        variant="tonal"
+                        class="mt-2"
+                      >
+                        <div class="text-caption">
+                          <strong>Actual: {{ actualSampleCount }} samples</strong>
+                          <br />
+                          {{ sampleCountAdjustmentInfo.message }}
+                        </div>
+                      </v-alert>
+                      
+                      <div v-if="parcelingMode === 'smart'" class="mt-2 pa-2 bg-blue-grey-lighten-5 rounded text-caption">
+                        <v-icon size="small" class="mr-1">mdi-information</v-icon>
+                        Smart mode will calculate optimal request sizes based on this sample count
                       </div>
+                    </v-card>
+                    
+                    <!-- Rate Limiting (Separate Section) -->
+                    <v-card variant="outlined" class="pa-2 mb-2">
+                      <div class="text-caption font-weight-bold mb-2">3. Rate Limiting & Retries</div>
+                      <v-alert
+                        type="info"
+                        variant="tonal"
+                        density="compact"
+                        class="mb-2 text-caption"
+                      >
+                        Controls request pacing and error handling
+                      </v-alert>
+                      <v-row dense>
+                        <v-col cols="6">
+                          <v-text-field
+                            v-model.number="rateLimitMs"
+                            label="Rate Limit (ms)"
+                            type="number"
+                            min="0"
+                            max="100"
+                            density="compact"
+                            hint="Delay between requests"
+                            persistent-hint
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="6">
+                          <v-text-field
+                            v-model.number="maxRetries503"
+                            label="Max 503 Retries"
+                            type="number"
+                            min="0"
+                            max="5"
+                            density="compact"
+                            hint="Retry on server busy"
+                            persistent-hint
+                          ></v-text-field>
+                        </v-col>
+                      </v-row>
+                    </v-card>
+                    
+                    <!-- Fetch Readiness Check -->
+                    <v-alert
+                      v-if="!canFetch"
+                      type="warning"
+                      variant="tonal"
+                      density="compact"
+                      class="mt-3"
+                      icon="mdi-alert-circle"
+                    >
+                      <span class="text-caption">
+                        <strong>Not ready:</strong> 
+                        <span v-if="!selectedRegion">Select a region (Step 1)</span>
+                        <span v-else-if="!selectedTimeRange">Select a time range (Step 2)</span>
+                      </span>
                     </v-alert>
                     
-                    <v-row dense class="mt-2">
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="rateLimitMs"
-                          label="Rate Limit (ms)"
-                          type="number"
-                          min="0"
-                          max="100"
-                          density="compact"
-                          hide-details
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="maxRetries503"
-                          label="Max 503 Retries"
-                          type="number"
-                          min="0"
-                          max="5"
-                          density="compact"
-                          hide-details
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                    
-                    <!-- Parceling Configuration -->
-                    <v-divider class="my-3"></v-divider>
-                    <div class="text-caption font-weight-bold mb-2">Parceling Configuration</div>
-                    <v-row dense>
-                      <v-col cols="6">
-                        <v-select
-                          v-model="parcelingMode"
-                          label="Mode"
-                          :items="parcelingModeOptions"
-                          density="compact"
-                          hide-details
-                        ></v-select>
-                      </v-col>
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="defaultParcelSizeDays"
-                          label="Parcel Size (days)"
-                          type="number"
-                          min="1"
-                          max="365"
-                          density="compact"
-                          hide-details
-                          :disabled="parcelingMode !== 'default'"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="maxSamplesPerRequest"
-                          label="Max Samples/Req"
-                          type="number"
-                          min="100"
-                          max="10000"
-                          density="compact"
-                          hide-details
-                          :disabled="parcelingMode !== 'smart'"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="safetyMargin"
-                          label="Safety Margin"
-                          type="number"
-                          min="0.1"
-                          max="1.0"
-                          step="0.05"
-                          density="compact"
-                          hide-details
-                          :disabled="parcelingMode !== 'smart'"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
+                    <v-alert
+                      v-else
+                      type="success"
+                      variant="tonal"
+                      density="compact"
+                      class="mt-3"
+                      icon="mdi-check-circle"
+                    >
+                      <span class="text-caption">Ready to fetch! Choose an option below:</span>
+                    </v-alert>
                     
                     <v-btn
                       color="primary"
+                      size="large"
                       block
-                      class="mt-3"
+                      class="mt-2"
                       :loading="fetching"
                       :disabled="!canFetch"
                       @click="fetchData"
+                      prepend-icon="mdi-download"
                     >
                       Fetch Data
                     </v-btn>
-                    <!-- Generated by Copilot - Dry Run button -->
                     <v-btn
                       color="secondary"
                       variant="outlined"
@@ -333,12 +463,10 @@
                       :loading="fetching"
                       :disabled="!canFetch"
                       @click="dryRunData"
+                      prepend-icon="mdi-test-tube"
                     >
-                      Dry Run (Generate URLs Only)
+                      Dry Run (Preview URLs)
                     </v-btn>
-                    <div v-if="!canFetch" class="text-error text-caption mt-1 text-center">
-                      Select region and time range
-                    </div>
                   </v-col>
                 </v-row>
               </v-card-text>
@@ -491,6 +619,7 @@ import DateTimeRangeSelection from './date_time_range_selection/DateTimeRangeSel
 import PlotlyGraph from './components/plotly/PlotlyGraph.vue';
 import RequestStatistics from './components/RequestStatistics.vue';
 import TimeRangeStatusList from './components/TimeRangeStatusList.vue';
+import InfoButton from './components/InfoButton.vue';
 import { useTempoStore } from './stores/app';
 import type { LatLngPair, UserDataset, PlotltGraphDataSet } from './types';
 import type { RectBounds } from './esri/geometry';
