@@ -12,9 +12,36 @@
         <v-row>
           <!-- Left Panel: Map and Controls -->
           <v-col cols="12" lg="7">
+            <!-- Step 1: Region Selection -->
             <v-card class="mb-4">
-              <v-card-title>Map & Region Selection</v-card-title>
+              <v-card-title class="d-flex align-center">
+                <v-chip color="primary" variant="flat" size="small" class="mr-2">STEP 1</v-chip>
+                Select Test Region
+                <v-spacer></v-spacer>
+                <info-button tooltip-text="Learn about test regions">
+                  <p><strong>Test Regions</strong></p>
+                  <p>Select a geographic area to analyze. Region size affects data volume:</p>
+                  <ul>
+                    <li><strong>Small:</strong> Fast testing, minimal data</li>
+                    <li><strong>Medium:</strong> Balanced data volume</li>
+                    <li><strong>Large:</strong> Performance stress testing</li>
+                  </ul>
+                  <p><strong>Sample Count:</strong> Number of sampling points across the region. More points = better spatial resolution but larger datasets.</p>
+                </info-button>
+              </v-card-title>
               <v-card-text>
+                <!-- Instructional Alert -->
+                <v-alert
+                  v-if="!selectedRegion"
+                  type="info"
+                  variant="tonal"
+                  density="compact"
+                  class="mb-3"
+                  icon="mdi-cursor-default-click"
+                >
+                  <strong>Select a region:</strong> Click a chip below to choose your study area
+                </v-alert>
+                
                 <!-- Current Map Timestamp Display -->
                 <div v-if="mapTimestamp" class="mb-2 pa-2 bg-blue-grey-lighten-5 rounded text-center">
                   <strong>Current Map Time (UTC):</strong> 
@@ -43,8 +70,10 @@
                   <!-- Region Selection Column -->
                   <v-col cols="12" md="5">
                     <v-card variant="outlined" class="pa-3">
-                      <h4>Test Regions</h4>
-                      <v-chip-group column>
+                      <div class="d-flex align-center mb-2">
+                        <h4>Available Regions</h4>
+                      </div>
+                      <v-chip-group column mandatory>
                         <v-chip
                           v-for="region in predefinedRegions"
                           :key="region.id"
@@ -65,6 +94,35 @@
                         {{ selectedRegion.geometry.ymax.toFixed(3) }}
                       </div>
                       
+                      <!-- Sample Count Configuration -->
+                      <v-divider class="my-3"></v-divider>
+                      <h4 class="mb-2">Spatial Sampling</h4>
+                      <v-text-field
+                        v-model.number="sampleCount"
+                        label="Sample Count"
+                        type="number"
+                        min="1"
+                        max="100"
+                        density="compact"
+                        hint="Sampling points across region (1-100). More points = better coverage."
+                        persistent-hint
+                      ></v-text-field>
+                      
+                      <!-- Sample Count Adjustment Info -->
+                      <v-alert
+                        v-if="sampleCountAdjustmentInfo"
+                        :type="sampleCountAdjustmentInfo.type === 'reduced' ? 'warning' : 'info'"
+                        density="compact"
+                        variant="tonal"
+                        class="mt-2"
+                      >
+                        <div class="text-caption">
+                          <strong>Actual: {{ actualSampleCount }} locations</strong>
+                          <br />
+                          {{ sampleCountAdjustmentInfo.message }}
+                        </div>
+                      </v-alert>
+                      
                       <!-- Cache Busting -->
                       <v-divider class="my-3"></v-divider>
                       <v-btn
@@ -75,10 +133,10 @@
                         @click="jitterRegions"
                       >
                         <v-icon start>mdi-shuffle-variant</v-icon>
-                        Jitter Regions
+                        Randomize Regions
                       </v-btn>
                       <div class="text-caption mt-1 text-grey">
-                        Randomize positions to bypass caching
+                        Slightly shifts region boundaries to bypass server caching
                       </div>
                       
                       <!-- Show Sample Points Toggle -->
@@ -140,12 +198,33 @@
 
             <!-- Time Range Selection & Fetch Controls Combined -->
             <v-card class="mb-4">
-              <v-card-title>Time Range & Fetch Settings</v-card-title>
+              <v-card-title class="d-flex align-center">
+                <v-chip color="primary" variant="flat" size="small" class="mr-2">STEP 2</v-chip>
+                Select Time Range
+                <v-spacer></v-spacer>
+                <info-button tooltip-text="Learn about time ranges">
+                  <p><strong>Time Range Selection</strong></p>
+                  <p><strong>Presets:</strong> Ready-to-use time periods for common scenarios</p>
+                  <p><strong>Custom:</strong> Build your own ranges with specific dates, times, or patterns</p>
+                  <p><strong>Tip:</strong> More time ranges = more requests. Use "Dry Run" to preview first.</p>
+                </info-button>
+              </v-card-title>
               <v-card-text>
+                <!-- Instructional Alert -->
+                <v-alert
+                  v-if="!selectedTimeRange"
+                  type="info"
+                  variant="tonal"
+                  density="compact"
+                  class="mb-3"
+                  icon="mdi-calendar-clock"
+                >
+                  <strong>Choose a time period:</strong> Select a preset or create your own
+                </v-alert>
+                
                 <v-row>
                   <!-- Time Range Selection -->
                   <v-col cols="12" md="6">
-                    <h4 class="mb-2">Time Range Selection</h4>
                     <v-tabs v-model="timeRangeTab" density="compact">
                       <v-tab value="presets">Presets</v-tab>
                       <v-tab value="custom">Custom</v-tab>
@@ -154,23 +233,42 @@
                     <v-window v-model="timeRangeTab" class="mt-3" eager>
                       <!-- Preset Time Ranges -->
                       <v-window-item value="presets" eager>
-                        <v-chip-group column>
-                          <v-chip
-                            v-for="preset in allTimeRanges"
-                            :key="preset.id"
-                            variant="outlined"
-                            size="small"
-                            @click="selectTimeRange(preset)"
-                            :class="{ 'v-chip--active': selectedTimeRange?.id === preset.id }"
-                          >
-                            {{ preset.name }}
-                          </v-chip>
-                        </v-chip-group>
-                        <div v-if="selectedTimeRange" class="mt-2 text-caption">
-                          <strong>{{ selectedTimeRange.name }}</strong><br />
-                          {{ selectedTimeRange.description }}<br />
-                          <span class="text-info">{{ selectedTimeRange.ranges.length }} time range(s)</span>
-                        </div>
+                        <v-table density="compact" class="text-caption">
+                          <thead>
+                            <tr>
+                              <th class="text-left">Preset</th>
+                              <th class="text-left">Description</th>
+                              <th class="text-center"># of Distinct Time Ranges</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr
+                              v-for="preset in allTimeRanges"
+                              :key="preset.id"
+                              @click="selectTimeRange(preset)"
+                              :class="{ 'bg-primary-lighten-4': selectedTimeRange?.id === preset.id }"
+                              style="cursor: pointer;"
+                            >
+                              <td class="font-weight-bold">
+                                <v-icon 
+                                  v-if="selectedTimeRange?.id === preset.id" 
+                                  size="small" 
+                                  color="primary"
+                                  start
+                                >
+                                  mdi-check-circle
+                                </v-icon>
+                                {{ preset.name }}
+                              </td>
+                              <td>{{ preset.description }}</td>
+                              <td class="text-center">
+                                <v-chip size="x-small" color="info" variant="flat">
+                                  {{ preset.ranges.length }}
+                                </v-chip>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </v-table>
                       </v-window-item>
 
                       <!-- Custom Time Range -->
@@ -207,126 +305,181 @@
                   
                   <!-- Fetch Controls -->
                   <v-col cols="12" md="6">
-                    <h4 class="mb-2">Fetch Settings</h4>
-                    <v-row dense>
-                      <v-col cols="12">
-                        <v-text-field
-                          v-model.number="sampleCount"
-                          label="Sample Count"
-                          type="number"
-                          min="1"
-                          max="100"
-                          density="compact"
-                          hide-details
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
+                    <div class="d-flex align-center mb-2">
+                      <v-chip color="primary" variant="flat" size="small" class="mr-2">STEP 3</v-chip>
+                      <h4>Configure & Fetch</h4>
+                      <v-spacer></v-spacer>
+                      <info-button tooltip-text="Learn about fetch settings">
+                        <p><strong>Parceling:</strong> How to split time ranges into requests</p>
+                        <ul>
+                          <li><strong>None:</strong> Single requests (fast but may fail on large ranges)</li>
+                          <li><strong>Default:</strong> Fixed-size chunks (predictable, configurable)</li>
+                          <li><strong>Smart:</strong> Optimized batches (most efficient, recommended)</li>
+                        </ul>
+                        <p><strong>Rate Limiting:</strong> Delay between requests to prevent server overload.</p>
+                      </info-button>
+                    </div>
                     
-                    <!-- Sample Count Adjustment Info -->
+                    <!-- Parceling Configuration (First) -->
+                    <v-card variant="outlined" class="pa-2 mb-2">
+                      <div class="text-caption font-weight-bold mb-2">1. Parceling Strategy</div>
+                      <v-alert
+                        type="info"
+                        variant="tonal"
+                        density="compact"
+                        class="mb-2 text-caption"
+                      >
+                        <strong>Purpose:</strong> Break large time ranges into manageable requests
+                      </v-alert>
+                      
+                      <v-select
+                        v-model="parcelingMode"
+                        label="Parceling Mode"
+                        :items="parcelingModeOptions"
+                        density="compact"
+                        class="mb-2"
+                      ></v-select>
+                      
+                      <!-- Default Mode Settings -->
+                      <v-expand-transition>
+                        <div v-if="parcelingMode === 'default'">
+                          <v-text-field
+                            v-model.number="defaultParcelSizeDays"
+                            label="Chunk Size (days)"
+                            type="number"
+                            min="1"
+                            max="365"
+                            density="compact"
+                            hint="Days per request. Smaller = more requests but safer."
+                            persistent-hint
+                          ></v-text-field>
+                        </div>
+                      </v-expand-transition>
+                      
+                      <!-- Smart Mode Settings -->
+                      <v-expand-transition>
+                        <div v-if="parcelingMode === 'smart'">
+                          <v-row dense>
+                            <v-col cols="6">
+                              <v-text-field
+                                v-model.number="maxSamplesPerRequest"
+                                label="Max Samples/Request"
+                                type="number"
+                                min="100"
+                                max="10000"
+                                density="compact"
+                                hint="Server limit (default: 2000)"
+                                persistent-hint
+                              ></v-text-field>
+                            </v-col>
+                            <v-col cols="6">
+                              <v-text-field
+                                v-model.number="safetyMargin"
+                                label="Safety Margin"
+                                type="number"
+                                min="0.1"
+                                max="1.0"
+                                step="0.05"
+                                density="compact"
+                                hint="Use % of max (0.9 = 90%)"
+                                persistent-hint
+                              ></v-text-field>
+                            </v-col>
+                          </v-row>
+                        </div>
+                      </v-expand-transition>
+                    </v-card>
+                    
+                    <!-- Rate Limiting (Separate Section) -->
+                    <v-card variant="outlined" class="pa-2 mb-2">
+                      <div class="text-caption font-weight-bold mb-2">2. Rate Limiting & Retries</div>
+                      <v-alert
+                        type="info"
+                        variant="tonal"
+                        density="compact"
+                        class="mb-2 text-caption"
+                      >
+                        <strong>Purpose:</strong> Pace requests to avoid overwhelming the server
+                      </v-alert>
+                      <v-row dense>
+                        <v-col cols="6">
+                          <v-text-field
+                            v-model.number="rateLimitMs"
+                            label="Request Delay (ms)"
+                            type="number"
+                            min="0"
+                            max="100"
+                            density="compact"
+                            hint="Wait time. 0=fastest, 50=safe"
+                            persistent-hint
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="6">
+                          <v-text-field
+                            v-model.number="maxRetries503"
+                            label="Server Busy Retries"
+                            type="number"
+                            min="0"
+                            max="5"
+                            density="compact"
+                            hint="Attempts on 503 errors"
+                            persistent-hint
+                          ></v-text-field>
+                        </v-col>
+                      </v-row>
+                    </v-card>
+                    
+                    <!-- Fetch Readiness Check -->
                     <v-alert
-                      v-if="sampleCountAdjustmentInfo"
-                      :type="sampleCountAdjustmentInfo.type === 'reduced' ? 'warning' : 'info'"
-                      density="compact"
+                      v-if="!canFetch"
+                      type="warning"
                       variant="tonal"
-                      class="mt-2 mb-2"
+                      density="compact"
+                      class="mt-3"
+                      icon="mdi-alert-circle"
                     >
-                      <div class="text-caption">
-                        <strong>Actual: {{ actualSampleCount }} samples</strong>
-                        <br />
-                        {{ sampleCountAdjustmentInfo.message }}
-                      </div>
+                      <span class="text-caption">
+                        <strong>Not ready:</strong> 
+                        <span v-if="!selectedRegion">Select a region (Step 1)</span>
+                        <span v-else-if="!selectedTimeRange">Select a time range (Step 2)</span>
+                      </span>
                     </v-alert>
                     
-                    <v-row dense class="mt-2">
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="rateLimitMs"
-                          label="Rate Limit (ms)"
-                          type="number"
-                          min="0"
-                          max="100"
-                          density="compact"
-                          hide-details
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="maxRetries503"
-                          label="Max 503 Retries"
-                          type="number"
-                          min="0"
-                          max="5"
-                          density="compact"
-                          hide-details
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                    
-                    <!-- Parceling Configuration -->
-                    <v-divider class="my-3"></v-divider>
-                    <div class="text-caption font-weight-bold mb-2">Parceling Configuration</div>
-                    <v-row dense>
-                      <v-col cols="6">
-                        <v-select
-                          v-model="parcelingMode"
-                          label="Mode"
-                          :items="parcelingModeOptions"
-                          density="compact"
-                          hide-details
-                        ></v-select>
-                      </v-col>
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="defaultParcelSizeDays"
-                          label="Parcel Size (days)"
-                          type="number"
-                          min="1"
-                          max="365"
-                          density="compact"
-                          hide-details
-                          :disabled="parcelingMode !== 'default'"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="maxSamplesPerRequest"
-                          label="Max Samples/Req"
-                          type="number"
-                          min="100"
-                          max="10000"
-                          density="compact"
-                          hide-details
-                          :disabled="parcelingMode !== 'smart'"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="6">
-                        <v-text-field
-                          v-model.number="safetyMargin"
-                          label="Safety Margin"
-                          type="number"
-                          min="0.1"
-                          max="1.0"
-                          step="0.05"
-                          density="compact"
-                          hide-details
-                          :disabled="parcelingMode !== 'smart'"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
+                    <v-alert
+                      v-else
+                      type="success"
+                      variant="tonal"
+                      density="compact"
+                      class="mt-3"
+                      icon="mdi-check-circle"
+                    >
+                      <span class="text-caption"><strong>Ready!</strong> Fetch data or preview URLs with Dry Run</span>
+                    </v-alert>
                     
                     <v-btn
                       color="primary"
+                      size="large"
                       block
-                      class="mt-3"
+                      class="mt-2"
                       :loading="fetching"
                       :disabled="!canFetch"
                       @click="fetchData"
+                      prepend-icon="mdi-download"
                     >
                       Fetch Data
                     </v-btn>
-                    <div v-if="!canFetch" class="text-error text-caption mt-1 text-center">
-                      Select region and time range
-                    </div>
+                    <v-btn
+                      color="secondary"
+                      variant="outlined"
+                      block
+                      class="mt-2"
+                      :loading="fetching"
+                      :disabled="!canFetch"
+                      @click="dryRunData"
+                      prepend-icon="mdi-test-tube"
+                    >
+                      Dry Run (Preview URLs)
+                    </v-btn>
                   </v-col>
                 </v-row>
               </v-card-text>
@@ -367,7 +520,7 @@
                   @click="handleGraphClick"
                 />
                 <v-alert v-else type="info" variant="outlined" density="compact">
-                  No data fetched yet. Select a region and time range, then click "Fetch Data".
+                  <strong>No data yet.</strong> Complete Steps 1-2 above, then click "Fetch Data".
                 </v-alert>
               </v-card-text>
             </v-card>
@@ -479,6 +632,7 @@ import DateTimeRangeSelection from './date_time_range_selection/DateTimeRangeSel
 import PlotlyGraph from './components/plotly/PlotlyGraph.vue';
 import RequestStatistics from './components/RequestStatistics.vue';
 import TimeRangeStatusList from './components/TimeRangeStatusList.vue';
+import InfoButton from './components/InfoButton.vue';
 import { useTempoStore } from './stores/app';
 import type { LatLngPair, UserDataset, PlotltGraphDataSet } from './types';
 import type { RectBounds } from './esri/geometry';
@@ -1084,31 +1238,24 @@ function toggleSamplePoints(region: TestRegion) {
   }
   
   if (show) {
-    // Generate or get sample points for the region
-    let locations = regionSampleLocations.value[region.id];
-    
-    // If no stored locations, generate them using the sampler
-    if (!locations || locations.length === 0) {
-      if (!sampler.value) {
-        console.warn('Sampler not initialized yet. Please wait for metadata to load.');
-        showSamplePoints.value[region.id] = false; // Reset checkbox
-        return;
-      }
-      
-      // Set the geometry for this region
-      sampler.value.setGeometry(region.geometry);
-      
-      // Get sample locations based on the sample count setting
-      locations = sampler.value.getSampleLocationsGrid(sampleCount.value);
-      
-      // Store the generated locations
-      regionSampleLocations.value[region.id] = locations;
-      
-      console.log(`Generated ${locations.length} expected sample points for ${region.name}`);
+    // Always regenerate sample points to reflect current sample count
+    if (!sampler.value) {
+      console.warn('Sampler not initialized yet. Please wait for metadata to load.');
+      showSamplePoints.value[region.id] = false; // Reset checkbox
+      return;
     }
     
+    // Set the geometry for this region
+    sampler.value.setGeometry(region.geometry);
+    
+    // Get sample locations based on the current sample count setting
+    const locations = sampler.value.getSampleLocationsGrid(sampleCount.value);
+    
+    // Update the stored locations
+    regionSampleLocations.value[region.id] = locations;
+    
     marker.addMarkers(locations);
-    console.log(`Showing ${locations.length} expected sample points for ${region.name}`);
+    console.log(`Showing ${locations.length} expected sample points for ${region.name} (sample count: ${sampleCount.value})`);
   } else {
     // Hide sample points
     marker.clearMarkers();
@@ -1404,6 +1551,65 @@ async function fetchData() {
   }
 }
 
+// Generated by Copilot - Dry run function to generate URLs without fetching
+async function dryRunData() {
+  if (!canFetch.value || !selectedRegion.value || !selectedTimeRange.value) return;
+  
+  fetching.value = true;
+  
+  try {
+    const service = store.getTempoDataService('no2' as MoleculeType);
+    await service.withMetadataCache();
+    
+    // Configure parceling settings
+    service.setParcelingMode(parcelingMode.value);
+    service.setDefaultParcelSize(defaultParcelSizeDays.value * 24 * 60 * 60 * 1000);
+    service.setMaxSamplesPerRequest(maxSamplesPerRequest.value);
+    service.setSafetyMargin(safetyMargin.value);
+    service.setAvailableTimestamps(esriTimesteps.value);
+    
+    // Enable dry run mode
+    service.setDryRun(true);
+    
+    const timeRanges: { start: number; end: number }[] = selectedTimeRange.value.ranges;
+    
+    console.log('%c╔════════════════════════════════════════════════════════════════╗', 'color: #FF9800; font-weight: bold');
+    console.log('%c║                      DRY RUN MODE                              ║', 'color: #FF9800; font-weight: bold');
+    console.log('%c╚════════════════════════════════════════════════════════════════╝', 'color: #FF9800; font-weight: bold');
+    console.log(`\nGenerating URLs for ${timeRanges.length} time chunks...`);
+    
+    // "Fetch" with dry run enabled
+    await service.fetchTimeseriesData(
+      selectedRegion.value.geometry,
+      timeRanges,
+      {
+        sampleCount: actualSampleCount.value,
+        dryRun: true
+      }
+    );
+    
+    // Get the generated URLs
+    const urls = service.getRequestUrls();
+    
+    console.log('%c\n📋 GENERATED URLs:', 'color: #FF9800; font-weight: bold; font-size: 14px');
+    console.log(`   Total URLs: ${urls.length}`);
+    console.log('\nAll Request URLs (JSON):');
+    console.log({url: urls});
+    
+    console.log('%c\n✅ Dry run complete - no requests were made', 'color: #4CAF50; font-weight: bold');
+    
+    // Disable dry run mode
+    service.setDryRun(false);
+    
+    // alert(`Dry run complete! Generated ${urls.length} URLs.\nCheck console for details.`);
+  } catch (error) {
+    console.error('Error in dry run:', error);
+    alert('Error in dry run. Check console for details.');
+  } finally {
+    fetching.value = false;
+  }
+}
+
 // Note: splitTimeRanges is no longer needed - parceling is handled by generateTimeRanges
 
 function clearStatistics() {
@@ -1514,6 +1720,28 @@ watch(defaultParcelSizeDays, () => {
       console.log(`Updated selected time range "${updatedPreset.name}" with ${updatedPreset.ranges.length} ranges for parcel size: ${defaultParcelSizeDays.value} days`);
     }
   }
+});
+
+// Watch for sample count changes and update displayed sample points automatically
+watch(sampleCount, () => {
+  // Update all visible sample point displays
+  predefinedRegions.value.forEach(region => {
+    if (showSamplePoints.value[region.id]) {
+      // Regenerate and update the displayed points
+      if (sampler.value) {
+        sampler.value.setGeometry(region.geometry);
+        const locations = sampler.value.getSampleLocationsGrid(sampleCount.value);
+        regionSampleLocations.value[region.id] = locations;
+        
+        const marker = sampleMarkers[region.id];
+        if (marker) {
+          marker.clearMarkers();
+          marker.addMarkers(locations);
+          console.log(`Updated sample points for ${region.name}: ${locations.length} locations (sample count: ${sampleCount.value})`);
+        }
+      }
+    }
+  });
 });
 
 // Note: Timestamps are now fetched directly via useEsriTimesteps composable
