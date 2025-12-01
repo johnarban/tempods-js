@@ -233,23 +233,42 @@
                     <v-window v-model="timeRangeTab" class="mt-3" eager>
                       <!-- Preset Time Ranges -->
                       <v-window-item value="presets" eager>
-                        <v-chip-group column>
-                          <v-chip
-                            v-for="preset in allTimeRanges"
-                            :key="preset.id"
-                            variant="outlined"
-                            size="small"
-                            @click="selectTimeRange(preset)"
-                            :class="{ 'v-chip--active': selectedTimeRange?.id === preset.id }"
-                          >
-                            {{ preset.name }}
-                          </v-chip>
-                        </v-chip-group>
-                        <div v-if="selectedTimeRange" class="mt-2 text-caption">
-                          <strong>{{ selectedTimeRange.name }}</strong><br />
-                          {{ selectedTimeRange.description }}<br />
-                          <span class="text-info">{{ selectedTimeRange.ranges.length }} time range(s)</span>
-                        </div>
+                        <v-table density="compact" class="text-caption">
+                          <thead>
+                            <tr>
+                              <th class="text-left">Preset</th>
+                              <th class="text-left">Description</th>
+                              <th class="text-center"># of Distinct Time Ranges</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr
+                              v-for="preset in allTimeRanges"
+                              :key="preset.id"
+                              @click="selectTimeRange(preset)"
+                              :class="{ 'bg-primary-lighten-4': selectedTimeRange?.id === preset.id }"
+                              style="cursor: pointer;"
+                            >
+                              <td class="font-weight-bold">
+                                <v-icon 
+                                  v-if="selectedTimeRange?.id === preset.id" 
+                                  size="small" 
+                                  color="primary"
+                                  start
+                                >
+                                  mdi-check-circle
+                                </v-icon>
+                                {{ preset.name }}
+                              </td>
+                              <td>{{ preset.description }}</td>
+                              <td class="text-center">
+                                <v-chip size="x-small" color="info" variant="flat">
+                                  {{ preset.ranges.length }}
+                                </v-chip>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </v-table>
                       </v-window-item>
 
                       <!-- Custom Time Range -->
