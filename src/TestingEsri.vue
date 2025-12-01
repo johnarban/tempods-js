@@ -27,6 +27,7 @@
                     <li><strong>Large:</strong> Performance testing with significant data</li>
                   </ul>
                   <p>The map shows your selected region outlined in its designated color.</p>
+                  <p><strong>Sample Count:</strong> Controls the number of spatial sampling <em>locations</em> within the region. Each location provides one data value per timestamp. Higher counts give better spatial resolution but increase data volume.</p>
                 </info-button>
               </v-card-title>
               <v-card-text>
@@ -93,6 +94,35 @@
                         {{ selectedRegion.geometry.xmax.toFixed(3) }}, 
                         {{ selectedRegion.geometry.ymax.toFixed(3) }}
                       </div>
+                      
+                      <!-- Sample Count Configuration -->
+                      <v-divider class="my-3"></v-divider>
+                      <h4 class="mb-2">Spatial Sampling</h4>
+                      <v-text-field
+                        v-model.number="sampleCount"
+                        label="Sample Count (Locations)"
+                        type="number"
+                        min="1"
+                        max="100"
+                        density="compact"
+                        hint="Number of spatial sampling locations in region"
+                        persistent-hint
+                      ></v-text-field>
+                      
+                      <!-- Sample Count Adjustment Info -->
+                      <v-alert
+                        v-if="sampleCountAdjustmentInfo"
+                        :type="sampleCountAdjustmentInfo.type === 'reduced' ? 'warning' : 'info'"
+                        density="compact"
+                        variant="tonal"
+                        class="mt-2"
+                      >
+                        <div class="text-caption">
+                          <strong>Actual: {{ actualSampleCount }} locations</strong>
+                          <br />
+                          {{ sampleCountAdjustmentInfo.message }}
+                        </div>
+                      </v-alert>
                       
                       <!-- Cache Busting -->
                       <v-divider class="my-3"></v-divider>
@@ -265,11 +295,10 @@
                         <p><strong>Parceling Mode:</strong> Controls how time ranges are split into requests:</p>
                         <ul>
                           <li><strong>None:</strong> Use time ranges as-is (may hit server limits)</li>
-                          <li><strong>Default:</strong> Split into fixed-size chunks</li>
-                          <li><strong>Smart:</strong> Optimize based on available timestamps (recommended)</li>
+                          <li><strong>Default:</strong> Split into fixed-size chunks by days</li>
+                          <li><strong>Smart:</strong> Optimize based on available timestamps to maximize efficiency (recommended)</li>
                         </ul>
-                        <p><strong>Sample Count:</strong> Spatial samples per timestamp (adjusted to TEMPO grid).</p>
-                        <p><strong>Rate Limiting:</strong> Controls request pacing to avoid server overload.</p>
+                        <p><strong>Rate Limiting:</strong> Controls request pacing to avoid server overload. Dry run mode bypasses rate limiting.</p>
                       </info-button>
                     </div>
                     
@@ -343,43 +372,9 @@
                       </v-expand-transition>
                     </v-card>
                     
-                    <!-- Sample Count (Depends on Parceling) -->
-                    <v-card variant="outlined" class="pa-2 mb-2">
-                      <div class="text-caption font-weight-bold mb-2">2. Samples per Request</div>
-                      <v-text-field
-                        v-model.number="sampleCount"
-                        label="Sample Count"
-                        type="number"
-                        min="1"
-                        max="100"
-                        density="compact"
-                        hide-details
-                      ></v-text-field>
-                    
-                      <!-- Sample Count Adjustment Info -->
-                      <v-alert
-                        v-if="sampleCountAdjustmentInfo"
-                        :type="sampleCountAdjustmentInfo.type === 'reduced' ? 'warning' : 'info'"
-                        density="compact"
-                        variant="tonal"
-                        class="mt-2"
-                      >
-                        <div class="text-caption">
-                          <strong>Actual: {{ actualSampleCount }} samples</strong>
-                          <br />
-                          {{ sampleCountAdjustmentInfo.message }}
-                        </div>
-                      </v-alert>
-                      
-                      <div v-if="parcelingMode === 'smart'" class="mt-2 pa-2 bg-blue-grey-lighten-5 rounded text-caption">
-                        <v-icon size="small" class="mr-1">mdi-information</v-icon>
-                        Smart mode will calculate optimal request sizes based on this sample count
-                      </div>
-                    </v-card>
-                    
                     <!-- Rate Limiting (Separate Section) -->
                     <v-card variant="outlined" class="pa-2 mb-2">
-                      <div class="text-caption font-weight-bold mb-2">3. Rate Limiting & Retries</div>
+                      <div class="text-caption font-weight-bold mb-2">2. Rate Limiting & Retries</div>
                       <v-alert
                         type="info"
                         variant="tonal"
@@ -1225,31 +1220,24 @@ function toggleSamplePoints(region: TestRegion) {
   }
   
   if (show) {
-    // Generate or get sample points for the region
-    let locations = regionSampleLocations.value[region.id];
-    
-    // If no stored locations, generate them using the sampler
-    if (!locations || locations.length === 0) {
-      if (!sampler.value) {
-        console.warn('Sampler not initialized yet. Please wait for metadata to load.');
-        showSamplePoints.value[region.id] = false; // Reset checkbox
-        return;
-      }
-      
-      // Set the geometry for this region
-      sampler.value.setGeometry(region.geometry);
-      
-      // Get sample locations based on the sample count setting
-      locations = sampler.value.getSampleLocationsGrid(sampleCount.value);
-      
-      // Store the generated locations
-      regionSampleLocations.value[region.id] = locations;
-      
-      console.log(`Generated ${locations.length} expected sample points for ${region.name}`);
+    // Always regenerate sample points to reflect current sample count
+    if (!sampler.value) {
+      console.warn('Sampler not initialized yet. Please wait for metadata to load.');
+      showSamplePoints.value[region.id] = false; // Reset checkbox
+      return;
     }
     
+    // Set the geometry for this region
+    sampler.value.setGeometry(region.geometry);
+    
+    // Get sample locations based on the current sample count setting
+    const locations = sampler.value.getSampleLocationsGrid(sampleCount.value);
+    
+    // Update the stored locations
+    regionSampleLocations.value[region.id] = locations;
+    
     marker.addMarkers(locations);
-    console.log(`Showing ${locations.length} expected sample points for ${region.name}`);
+    console.log(`Showing ${locations.length} expected sample points for ${region.name} (sample count: ${sampleCount.value})`);
   } else {
     // Hide sample points
     marker.clearMarkers();
@@ -1714,6 +1702,28 @@ watch(defaultParcelSizeDays, () => {
       console.log(`Updated selected time range "${updatedPreset.name}" with ${updatedPreset.ranges.length} ranges for parcel size: ${defaultParcelSizeDays.value} days`);
     }
   }
+});
+
+// Watch for sample count changes and update displayed sample points automatically
+watch(sampleCount, () => {
+  // Update all visible sample point displays
+  predefinedRegions.value.forEach(region => {
+    if (showSamplePoints.value[region.id]) {
+      // Regenerate and update the displayed points
+      if (sampler.value) {
+        sampler.value.setGeometry(region.geometry);
+        const locations = sampler.value.getSampleLocationsGrid(sampleCount.value);
+        regionSampleLocations.value[region.id] = locations;
+        
+        const marker = sampleMarkers[region.id];
+        if (marker) {
+          marker.clearMarkers();
+          marker.addMarkers(locations);
+          console.log(`Updated sample points for ${region.name}: ${locations.length} locations (sample count: ${sampleCount.value})`);
+        }
+      }
+    }
+  });
 });
 
 // Note: Timestamps are now fetched directly via useEsriTimesteps composable
