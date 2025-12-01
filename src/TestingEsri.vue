@@ -340,9 +340,43 @@
                         class="mb-2"
                       ></v-select>
                       
+                      <!-- Explanation for selected mode -->
+                      <v-alert
+                        v-if="parcelingMode === 'none'"
+                        type="info"
+                        variant="outlined"
+                        density="compact"
+                        class="mb-2 text-caption"
+                      >
+                        <strong>None (As-Is):</strong> Sends one request per time range without splitting. Fast for short ranges, but may fail if a single range exceeds server limits (typically ~2000 samples = locations × timestamps).
+                      </v-alert>
+                      
+                      <v-alert
+                        v-if="parcelingMode === 'default'"
+                        type="info"
+                        variant="outlined"
+                        density="compact"
+                        class="mb-2 text-caption"
+                      >
+                        <strong>Default (Fixed Chunks):</strong> Splits time ranges into fixed-size chunks based on days. Predictable and configurable. Good when you want consistent request sizes regardless of data density.
+                      </v-alert>
+                      
+                      <v-alert
+                        v-if="parcelingMode === 'smart'"
+                        type="success"
+                        variant="outlined"
+                        density="compact"
+                        class="mb-2 text-caption"
+                      >
+                        <strong>Smart (Recommended):</strong> Analyzes available timestamps and creates optimally-sized requests that maximize data per request while staying under server limits. Most efficient for long time ranges with sparse data.
+                      </v-alert>
+                      
                       <!-- Default Mode Settings -->
                       <v-expand-transition>
                         <div v-if="parcelingMode === 'default'">
+                          <div class="text-caption text-medium-emphasis mb-2">
+                            Each time range will be split into chunks of the specified number of days.
+                          </div>
                           <v-text-field
                             v-model.number="defaultParcelSizeDays"
                             label="Chunk Size (days)"
@@ -353,12 +387,18 @@
                             hint="Days per request. Smaller = more requests but safer."
                             persistent-hint
                           ></v-text-field>
+                          <div class="text-caption text-medium-emphasis mt-1">
+                            <strong>Example:</strong> A 30-day range with 7-day chunks = ~5 requests
+                          </div>
                         </div>
                       </v-expand-transition>
                       
                       <!-- Smart Mode Settings -->
                       <v-expand-transition>
                         <div v-if="parcelingMode === 'smart'">
+                          <div class="text-caption text-medium-emphasis mb-2">
+                            Smart mode groups timestamps to maximize efficiency while respecting server limits.
+                          </div>
                           <v-row dense>
                             <v-col cols="6">
                               <v-text-field
@@ -386,6 +426,9 @@
                               ></v-text-field>
                             </v-col>
                           </v-row>
+                          <div class="text-caption text-medium-emphasis mt-2">
+                            <strong>How it works:</strong> Calculates samples/request = locations × timestamps. Groups consecutive timestamps into batches that stay under (Max × Safety Margin). Minimizes total requests.
+                          </div>
                         </div>
                       </v-expand-transition>
                     </v-card>
@@ -401,6 +444,9 @@
                       >
                         <strong>Purpose:</strong> Pace requests to avoid overwhelming the server
                       </v-alert>
+                      <div class="text-caption text-medium-emphasis mb-2">
+                        Controls the delay between consecutive requests and how many times to retry on server errors.
+                      </div>
                       <v-row dense>
                         <v-col cols="6">
                           <v-text-field
@@ -427,6 +473,10 @@
                           ></v-text-field>
                         </v-col>
                       </v-row>
+                      <div class="text-caption text-medium-emphasis mt-2">
+                        <strong>Request Delay:</strong> 0ms = fastest but risky | 50-100ms = balanced | 200ms+ = very safe but slow<br>
+                        <strong>503 Retries:</strong> Server may temporarily reject requests when overloaded. Retries help complete the request.
+                      </div>
                     </v-card>
                     
                     <!-- Fetch Readiness Check -->
