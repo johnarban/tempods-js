@@ -20,14 +20,13 @@
                 <v-spacer></v-spacer>
                 <info-button tooltip-text="Learn about test regions">
                   <p><strong>Test Regions</strong></p>
-                  <p>Choose a geographic region to test data fetching. Different region sizes help test performance:</p>
+                  <p>Select a geographic area to analyze. Region size affects data volume:</p>
                   <ul>
-                    <li><strong>Small:</strong> Quick tests, minimal data</li>
-                    <li><strong>Medium:</strong> Moderate data volume</li>
-                    <li><strong>Large:</strong> Performance testing with significant data</li>
+                    <li><strong>Small:</strong> Fast testing, minimal data</li>
+                    <li><strong>Medium:</strong> Balanced data volume</li>
+                    <li><strong>Large:</strong> Performance stress testing</li>
                   </ul>
-                  <p>The map shows your selected region outlined in its designated color.</p>
-                  <p><strong>Sample Count:</strong> Controls the number of spatial sampling <em>locations</em> within the region. Each location provides one data value per timestamp. Higher counts give better spatial resolution but increase data volume.</p>
+                  <p><strong>Sample Count:</strong> Number of sampling points across the region. More points = better spatial resolution but larger datasets.</p>
                 </info-button>
               </v-card-title>
               <v-card-text>
@@ -40,7 +39,7 @@
                   class="mb-3"
                   icon="mdi-cursor-default-click"
                 >
-                  Click a region chip below to select your test area
+                  <strong>Select a region:</strong> Click a chip below to choose your study area
                 </v-alert>
                 
                 <!-- Current Map Timestamp Display -->
@@ -100,12 +99,12 @@
                       <h4 class="mb-2">Spatial Sampling</h4>
                       <v-text-field
                         v-model.number="sampleCount"
-                        label="Sample Count (Locations)"
+                        label="Sample Count"
                         type="number"
                         min="1"
                         max="100"
                         density="compact"
-                        hint="Number of spatial sampling locations in region"
+                        hint="Sampling points across region (1-100). More points = better coverage."
                         persistent-hint
                       ></v-text-field>
                       
@@ -134,10 +133,10 @@
                         @click="jitterRegions"
                       >
                         <v-icon start>mdi-shuffle-variant</v-icon>
-                        Jitter Regions
+                        Randomize Regions
                       </v-btn>
                       <div class="text-caption mt-1 text-grey">
-                        Randomize positions to bypass caching
+                        Slightly shifts region boundaries to bypass server caching
                       </div>
                       
                       <!-- Show Sample Points Toggle -->
@@ -205,9 +204,9 @@
                 <v-spacer></v-spacer>
                 <info-button tooltip-text="Learn about time ranges">
                   <p><strong>Time Range Selection</strong></p>
-                  <p><strong>Presets:</strong> Pre-configured time ranges for common testing scenarios.</p>
-                  <p><strong>Custom:</strong> Create your own time ranges with specific patterns (dates, times, weekdays).</p>
-                  <p>More time ranges = more requests. Use "Dry Run" to preview without fetching data.</p>
+                  <p><strong>Presets:</strong> Ready-to-use time periods for common scenarios</p>
+                  <p><strong>Custom:</strong> Build your own ranges with specific dates, times, or patterns</p>
+                  <p><strong>Tip:</strong> More time ranges = more requests. Use "Dry Run" to preview first.</p>
                 </info-button>
               </v-card-title>
               <v-card-text>
@@ -220,7 +219,7 @@
                   class="mb-3"
                   icon="mdi-calendar-clock"
                 >
-                  Select a preset time range or create a custom one
+                  <strong>Choose a time period:</strong> Select a preset or create your own
                 </v-alert>
                 
                 <v-row>
@@ -292,13 +291,13 @@
                       <h4>Configure & Fetch</h4>
                       <v-spacer></v-spacer>
                       <info-button tooltip-text="Learn about fetch settings">
-                        <p><strong>Parceling Mode:</strong> Controls how time ranges are split into requests:</p>
+                        <p><strong>Parceling:</strong> How to split time ranges into requests</p>
                         <ul>
-                          <li><strong>None:</strong> Use time ranges as-is (may hit server limits)</li>
-                          <li><strong>Default:</strong> Split into fixed-size chunks by days</li>
-                          <li><strong>Smart:</strong> Optimize based on available timestamps to maximize efficiency (recommended)</li>
+                          <li><strong>None:</strong> Single requests (fast but may fail on large ranges)</li>
+                          <li><strong>Default:</strong> Fixed-size chunks (predictable, configurable)</li>
+                          <li><strong>Smart:</strong> Optimized batches (most efficient, recommended)</li>
                         </ul>
-                        <p><strong>Rate Limiting:</strong> Controls request pacing to avoid server overload. Dry run mode bypasses rate limiting.</p>
+                        <p><strong>Rate Limiting:</strong> Delay between requests to prevent server overload.</p>
                       </info-button>
                     </div>
                     
@@ -311,7 +310,7 @@
                         density="compact"
                         class="mb-2 text-caption"
                       >
-                        Splits large time ranges into smaller requests
+                        <strong>Purpose:</strong> Break large time ranges into manageable requests
                       </v-alert>
                       
                       <v-select
@@ -327,12 +326,12 @@
                         <div v-if="parcelingMode === 'default'">
                           <v-text-field
                             v-model.number="defaultParcelSizeDays"
-                            label="Parcel Size (days)"
+                            label="Chunk Size (days)"
                             type="number"
                             min="1"
                             max="365"
                             density="compact"
-                            hint="Split time ranges into chunks of this many days"
+                            hint="Days per request. Smaller = more requests but safer."
                             persistent-hint
                           ></v-text-field>
                         </div>
@@ -350,7 +349,7 @@
                                 min="100"
                                 max="10000"
                                 density="compact"
-                                hint="ESRI service limit"
+                                hint="Server limit (default: 2000)"
                                 persistent-hint
                               ></v-text-field>
                             </v-col>
@@ -363,7 +362,7 @@
                                 max="1.0"
                                 step="0.05"
                                 density="compact"
-                                hint="Use % of limit"
+                                hint="Use % of max (0.9 = 90%)"
                                 persistent-hint
                               ></v-text-field>
                             </v-col>
@@ -381,30 +380,30 @@
                         density="compact"
                         class="mb-2 text-caption"
                       >
-                        Controls request pacing and error handling
+                        <strong>Purpose:</strong> Pace requests to avoid overwhelming the server
                       </v-alert>
                       <v-row dense>
                         <v-col cols="6">
                           <v-text-field
                             v-model.number="rateLimitMs"
-                            label="Rate Limit (ms)"
+                            label="Request Delay (ms)"
                             type="number"
                             min="0"
                             max="100"
                             density="compact"
-                            hint="Delay between requests"
+                            hint="Wait time. 0=fastest, 50=safe"
                             persistent-hint
                           ></v-text-field>
                         </v-col>
                         <v-col cols="6">
                           <v-text-field
                             v-model.number="maxRetries503"
-                            label="Max 503 Retries"
+                            label="Server Busy Retries"
                             type="number"
                             min="0"
                             max="5"
                             density="compact"
-                            hint="Retry on server busy"
+                            hint="Attempts on 503 errors"
                             persistent-hint
                           ></v-text-field>
                         </v-col>
@@ -435,7 +434,7 @@
                       class="mt-3"
                       icon="mdi-check-circle"
                     >
-                      <span class="text-caption">Ready to fetch! Choose an option below:</span>
+                      <span class="text-caption"><strong>Ready!</strong> Fetch data or preview URLs with Dry Run</span>
                     </v-alert>
                     
                     <v-btn
@@ -502,7 +501,7 @@
                   @click="handleGraphClick"
                 />
                 <v-alert v-else type="info" variant="outlined" density="compact">
-                  No data fetched yet. Select a region and time range, then click "Fetch Data".
+                  <strong>No data yet.</strong> Complete Steps 1-2 above, then click "Fetch Data".
                 </v-alert>
               </v-card-text>
             </v-card>
