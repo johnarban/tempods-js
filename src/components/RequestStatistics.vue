@@ -157,6 +157,17 @@
           </v-card>
         </v-col>
 
+        <!-- Duration Histogram -->
+        <v-col cols="12">
+          <v-card variant="outlined" class="pa-3">
+            <DurationHistogram 
+              :stats="stats" 
+              :bin-count="10"
+              title="Request Duration Distribution (ms)"
+            />
+          </v-card>
+        </v-col>
+
         <!-- Request Timeline -->
         <v-col cols="12" v-if="showTimeline && stats && stats.length > 0 && stats.length <= 200">
           <v-card variant="outlined" class="pa-3">
@@ -210,6 +221,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { RequestStats } from '@/esri/services/TempoDataService';
+import DurationHistogram from './DurationHistogram.vue';
 
 interface Props {
   stats: RequestStats[] | null;
