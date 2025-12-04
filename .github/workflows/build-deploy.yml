@@ -3,24 +3,20 @@ name: Build and Deploy
 on:
   push:
     branches:
-      - main
+      - deploy
       - dev
+      - testing
 
 jobs:
   build:
-    if: ${{ github.repository_owner == 'cosmicds' }}
+    if: ${{ github.repository_owner == 'johnarban' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout current branch
         uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18.17.1'
+        uses: actions/setup-node@v6
 
       - name: Yarn install
         run: yarn install
@@ -34,71 +30,60 @@ jobs:
           VUE_APP_MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
           VUE_APP_CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
 
-          # - name: BrowserStack env setup
-          #   uses: browserstack/github-actions/setup-env@master
-          #   with:
-          #     username:  ${{ secrets.BROWSERSTACK_USERNAME }}
-          #     access-key: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
-
-          # - name: BrowserStack local tunnel setup
-          #   uses: browserstack/github-actions/setup-local@master
-          #   with:
-          #     local-testing: start
-          #     local-identifier: random
-
-          # - name: Run BrowserStack tests
-          #   run: |
-          #     set -xeuo pipefail
-          #     yarn serve &
-          #     sleep 10
-          #     yarn test-bslocal -e default,firefox,edge,safari -o reports
-
       - name: Check for draft flag
         uses: sergeysova/jq-action@v2
         id: draft
         with:
           cmd: cat package.json | jq -r '.draft // false'
 
-      - name: Create folder for deployment
-        run: |
-          mkdir deployment
-          mkdir deployment/dev
+      - name: Checkout gh-pages
+        uses: actions/checkout@v3
+        with:
+          ref: gh-pages
+          path: gh-pages-dir
+          fetch-depth: 1
+        continue-on-error: true
 
-      - name: Move current build to deployment
+      - name: Prepare deployment folder
         id: prepare
         env:
           BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           echo "Current branch: ${BRANCH}"
-          [[ "$BRANCH" == "dev" ]] && folder="dev" || folder="."
-          echo "Folder to use: ${folder}"
-          mv dist/* deployment/${folder}
-          [[ "$BRANCH" == "dev" ]] && other="main" || other="dev"
-          echo "Other branch: ${other}"
-          echo "other=${other}" >> "$GITHUB_OUTPUT"
+          
+          # Ensure directory exists (in case checkout failed/branch didn't exist)
+          mkdir -p gh-pages-dir
+          cd gh-pages-dir
+          
+          # Remove git metadata so we treat this as a plain directory of files
+          rm -rf .git
 
-      - name: Check out the other branch
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ steps.prepare.outputs.other }}
-          path: other
-
-      - name: Build other branch and move to deployment
-        env:
-          BRANCH: ${{ steps.prepare.outputs.other }}
-          VUE_APP_MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
-          VUE_APP_CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
-        run: |
-          cd other
-          yarn install
-          yarn build
-          [[ "$BRANCH" == "dev" ]] && folder="dev" || folder="."
-          mv dist/* ../deployment/${folder}
+          if [[ "$BRANCH" == "deploy" ]]; then
+            echo "Deploying to root. Keeping sub-apps."
+            # Delete everything except dev and testing
+            find . -maxdepth 1 -not -name 'dev' -not -name 'testing' -not -name '.' -exec rm -rf {} +
+            # Copy new build files to root
+            cp -a ../dist/. .
+          elif [[ "$BRANCH" == "dev" ]]; then
+            echo "Deploying to dev folder."
+            rm -rf dev
+            mkdir -p dev
+            cp -a ../dist/. dev/
+          elif [[ "$BRANCH" == "testing" ]]; then
+            echo "Deploying to testing folder."
+            rm -rf testing
+            mkdir -p testing
+            cp -a ../dist/. testing/
+          else
+            echo "Unknown branch: $BRANCH" >&2
+            exit 1
+          fi
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         if: ${{ steps.draft.outputs.value }} == 'false'
         with:
           branch: gh-pages
-          folder: deployment 
+          folder: gh-pages-dir
           ssh-key: ${{ secrets.DEPLOY_KEY }}
+          clean: true
