@@ -141,55 +141,39 @@
                       
                       <!-- Show Sample Points Toggle -->
                       <v-divider class="my-3"></v-divider>
-                      <h4 class="mb-2">Display Sample Points</h4>
-                      
-                      <div class="mb-2">
-                        <div class="text-caption font-weight-bold mb-1">Expected Locations:</div>
-                        <v-list density="compact" class="pa-0">
-                          <v-list-item
-                            v-for="region in predefinedRegions"
-                            :key="`samples-${region.id}`"
-                            class="px-0"
-                          >
-                            <template #prepend>
-                              <v-checkbox
-                                v-model="showSamplePoints[region.id]"
-                                :color="region.color"
-                                hide-details
-                                density="compact"
-                                @change="toggleSamplePoints(region)"
-                              ></v-checkbox>
-                            </template>
-                            <v-list-item-title class="text-body-2">
-                              {{ region.name }}
-                            </v-list-item-title>
-                          </v-list-item>
-                        </v-list>
-                      </div>
-                      
-                      <div>
-                        <div class="text-caption font-weight-bold mb-1">Actual Samples (Red):</div>
-                        <v-list density="compact" class="pa-0">
-                          <v-list-item
-                            v-for="region in predefinedRegions"
-                            :key="`actual-samples-${region.id}`"
-                            class="px-0"
-                          >
-                            <template #prepend>
-                              <v-checkbox
-                                v-model="showActualSamplePoints[region.id]"
-                                color="red"
-                                hide-details
-                                density="compact"
-                                @change="toggleActualSamplePoints(region)"
-                              ></v-checkbox>
-                            </template>
-                            <v-list-item-title class="text-body-2">
-                              {{ region.name }}
-                            </v-list-item-title>
-                          </v-list-item>
-                        </v-list>
-                      </div>
+                      <details>
+                        <summary class="cursor-pointer text-body-2 font-weight-bold mb-2" style="cursor: pointer;">
+                          Display Sample Points
+                        </summary>
+                        <div class="mt-2">
+                          <div class="text-caption font-weight-bold mb-1">Actual Samples (Red):</div>
+                          <v-list density="compact" class="pa-0">
+                            <v-list-item
+                              v-for="region in predefinedRegions"
+                              :key="`actual-samples-${region.id}`"
+                              class="px-0"
+                              :disabled="!regionActualSampleLocations[region.id] || regionActualSampleLocations[region.id].length === 0"
+                            >
+                              <template #prepend>
+                                <v-checkbox
+                                  v-model="showActualSamplePoints[region.id]"
+                                  color="red"
+                                  hide-details
+                                  density="compact"
+                                  :disabled="!regionActualSampleLocations[region.id] || regionActualSampleLocations[region.id].length === 0"
+                                  @change="toggleActualSamplePoints(region)"
+                                ></v-checkbox>
+                              </template>
+                              <v-list-item-title class="text-body-2">
+                                {{ region.name }}
+                                <span v-if="regionActualSampleLocations[region.id]" class="text-caption text-grey">
+                                  ({{ regionActualSampleLocations[region.id].length }} points)
+                                </span>
+                              </v-list-item-title>
+                            </v-list-item>
+                          </v-list>
+                        </div>
+                      </details>
                     </v-card>
                   </v-col>
                 </v-row>
@@ -876,7 +860,7 @@ const allDataConfig: TimeRangeConfigMultiple = {
   // [
   //   'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
   // ],
-  times: ['12 pm'],
+  times: undefined,
   toleranceHours: [0.5, 0.5]
 };
 
@@ -897,6 +881,38 @@ const manyTimeRangesConfig: TimeRangeConfigMultiple = {
   times: ['9 am', '11am', '1pm', '3pm'],
   toleranceHours: [0.5, 0.5]
 };
+
+// Student-realistic request: Summer mornings with discrete times
+const studentSummerMorningsConfig: TimeRangeConfigMultiple = {
+  type: 'multiple',
+  dateRange: {
+    start: new Date('2023-01-01T00:00:00.000Z'),
+    end: new Date('2025-12-31T23:59:59.999Z')
+  },
+  years: undefined,
+  months: ['June', 'July', 'August'],
+  weekdays: undefined,
+  times: ['8 am', '9 am', '10 am'],
+  toleranceHours: [0.5, 0.5]
+};
+
+// Student-realistic request with smart parceling: Summer mornings with time range
+const studentSummerMorningsSmartConfig: TimeRangeConfigMultiple = {
+  type: 'multiple',
+  dateRange: {
+    start: new Date('2023-01-01T00:00:00.000Z'),
+    end: new Date('2025-12-31T23:59:59.999Z')
+  },
+  years: undefined,
+  months: ['June', 'July', 'August'],
+  weekdays: undefined,
+  times: ['8 am-11 am'],
+  toleranceHours: undefined
+};
+
+
+
+
 
 // Computed preset time ranges based on actual available data
 // These depend on the parcel size setting for proper parceling
@@ -973,7 +989,7 @@ const presetTimeRanges = computed<PresetTimeRange[]>(() => {
     {
       id: 'all-data-pattern',
       name: 'All Available Data (Pattern)',
-      description: `2023-2025, All months/days, 12pm ±30min`,
+      description: `2023-2025, All months/days`,
       ranges: filterForAllowedDates(generateTimeRanges({...allDataConfig, parcel: false, parcelSize: parcelSizeMs}, false), uniqueDays.value),
       config: {...allDataConfig, parcel: false, parcelSize: parcelSizeMs}
     },
@@ -983,6 +999,20 @@ const presetTimeRanges = computed<PresetTimeRange[]>(() => {
       description: `2023-2025, Most months/days, 12pm/3pm/9pm ±30min`,
       ranges: filterForAllowedDates(generateTimeRanges({...manyTimeRangesConfig, parcel: false, parcelSize: parcelSizeMs}, false), uniqueDays.value),
       config: {...manyTimeRangesConfig, parcel: false, parcelSize: parcelSizeMs}
+    },
+    {
+      id: 'student-summer-mornings',
+      name: 'Student Request: Summer Mornings',
+      description: `2023-2025, Jun-Aug, 8am/9am/10am ±30min`,
+      ranges: filterForAllowedDates(generateTimeRanges({...studentSummerMorningsConfig, parcel: false, parcelSize: parcelSizeMs}, false), uniqueDays.value),
+      config: {...studentSummerMorningsConfig, parcel: false, parcelSize: parcelSizeMs}
+    },
+    {
+      id: 'student-summer-mornings-smart',
+      name: 'Student Request: Summer Mornings (Smart)',
+      description: `2023-2025, Jun-Aug, 8am-11am (time range)`,
+      ranges: filterForAllowedDates(generateTimeRanges({...studentSummerMorningsSmartConfig, parcel: false, parcelSize: parcelSizeMs}, false), uniqueDays.value),
+      config: {...studentSummerMorningsSmartConfig, parcel: false, parcelSize: parcelSizeMs}
     }
   ];
 });
@@ -1230,6 +1260,21 @@ function selectRegion(region: TestRegion) {
       duration: 1000
     });
   }
+  
+  // Hide sample points from all other regions
+  predefinedRegions.value.forEach(r => {
+    if (r.id !== region.id && showSamplePoints.value[r.id]) {
+      showSamplePoints.value[r.id] = false;
+      const marker = sampleMarkers[r.id];
+      if (marker) {
+        marker.clearMarkers();
+      }
+    }
+  });
+  
+  // Automatically show expected sample points for this region
+  showSamplePoints.value[region.id] = true;
+  toggleSamplePoints(region);
 }
 
 function selectTimeRange(preset: PresetTimeRange) {
