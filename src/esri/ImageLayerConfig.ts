@@ -243,7 +243,8 @@ export const renderingRule = (range: [number, number], colormap: ColorRamps, _re
   }
   return composeRasterRules(
     _stretchRule(Math.min(...range), Math.max(...range), reverse), 
-    _colorMapRule(colormapName), 
+    _colorMapRule(colormapName),
+    _resampleRule(_resamplineRule)
   );
 };
 

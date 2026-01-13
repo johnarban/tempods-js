@@ -82,10 +82,11 @@ const countRaster = {
 const gpw4url = `https://gis.earthdata.nasa.gov/image/rest/services/gpw-v4/${density}/ImageServer`;
 
 import { sampleColormap } from "@/colormaps/utils";
+import { composeRasterRules, _resampleRule } from "@/esri/ImageLayerConfig";
 const populationLayerOptions = {};
 populationLayerOptions['visible'] = false;
 populationLayerOptions['clickValue'] = true;
-populationLayerOptions['renderingRule'] = densityRaster;
+populationLayerOptions['renderingRule'] = composeRasterRules(_resampleRule('NearestNeighbor'), densityRaster);
 
 //valid timestamp otions are
 /*
