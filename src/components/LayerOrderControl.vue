@@ -90,6 +90,19 @@ interface Props {
 
 const props = defineProps<Props>();
 const mapRef = toRef(() => props.mapRef);
+const stamenLayers = computed(() => {
+  const temp1 = toValue(mapRef);
+  if (!temp1) {
+    return [];
+  }
+  const layerFilter = (layerId: string) => {
+    const layer = temp1.getLayer(layerId);
+    // return layer && layer.source && layer.source.includes('stamen-omt') && (layerId.startsWith('road-') || layerId.includes('boundary') || layerId.startsWith('tunnel-'));
+    return layer && layer.source && layer.source.includes('stamen-omt') && (!(layerId.includes('land') || layerId.includes('building') || layerId.includes('label')));
+  };
+  return temp1.getLayersOrder().filter(layerFilter);
+});
+
 
 // https://vuejs.org/guide/typescript/composition-api.html#typing-component-emits
 
@@ -113,8 +126,11 @@ const {
   mapRef, 
   toValue(props.order),
   false,
-  Object.entries(connections).map(([key, value]) => [key, value])
-  
+  Object.entries(connections).map(([key, value]) => [key, value]),
+  [
+    ['stamen-toner-lines', ['coastline-custom', 'states-custom', 'stamen-toner-lines']],
+    ['road-label', stamenLayers.value]
+  ]
 );
 
 const tempoPrefix = "tempo-";
@@ -140,6 +156,7 @@ const layerNames: Record<string, string | undefined> = {
   "hms-fire": "Fire Detections",
   'tempo-hcho': "TEMPO HCHO",
   'tempo-o3': "TEMPO Ozone",
+  'road-label': "Road Labels",
 };
 
 const layerInfo: Record<string, string | undefined> = {

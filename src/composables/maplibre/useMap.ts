@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Ref, ref, onMounted, onUnmounted } from 'vue';
 import M, { Map, AttributionControl } from 'maplibre-gl';
 import { InitMapOptions, LatLngPair } from '@/types';
@@ -119,9 +120,9 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
     // });
 
     addCoastlines(libreMap);
-    addStates(libreMap);
-    addRoads(libreMap);
-    addLabels(libreMap);
+    // addStates(libreMap);
+    // addRoads(libreMap);
+    // addLabels(libreMap);
     
     
     if (onReady !== undefined) {
@@ -162,7 +163,8 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
     const _map = new M.Map({
       container: id,
       // style: 'https://tiles.openfreemap.org/styles/liberty', // style URL
-      style: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
+      // style: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
+      style: 'https://tiles.stadiamaps.com/styles/stamen_toner_lite.json',
       center: options.loc ? [options.loc[1], options.loc[0]] : [0, 0], // starting position [lng, lat]
       zoom: options.zoom ?? 1, // starting zoom,
       attributionControl: false,
@@ -172,6 +174,11 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
     }));
     
     _map.on('style.load', setupMap);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any)._map = _map;
+    
+    
     
     map.value = _map;
     return map as unknown as Ref<M.Map>;
