@@ -107,7 +107,7 @@ import PopDensLegend from './PopDensLegend.vue';
 
 
 const store = useTempoStore();
-const { showRGBMode, layersReady } = storeToRefs(store);
+const { showRGBMode, layersReady, layerRangeWarnings } = storeToRefs(store);
 
 interface Props {
   mapRef: M.Map | null;
@@ -249,12 +249,8 @@ function serviceLoading(layerId: string): boolean {
   return summary.loading.length > 0;
 }
 
-function warningMessage(layerId: string): string | null {
-  const summary = statusSummary(layerId);
-  if (summary.values.length === 0) {
-    return null;
-  }
-  if (summary.values.every((ready) => ready === true)) {
+function serviceWarning(summary: { loading: string[]; failed: string[]; values: (boolean | null)[] }): string | null {
+  if (summary.values.length === 0 || summary.values.every((ready) => ready === true)) {
     return null;
   }
   if (summary.loading.length > 0 && summary.failed.length === 0) {
@@ -269,7 +265,18 @@ function warningMessage(layerId: string): string | null {
   if (summary.failed.length > 0) {
     return `Some data may be unavailable (${summary.failed.join(", ")}).`;
   }
-  return 'Service status loading';
+  return null;
+}
+
+function warningMessage(layerId: string): string | null {
+  const summary = statusSummary(layerId);
+  const rangeWarning = layerRangeWarnings.value.get(layerId);
+  const rangeText = rangeWarning ?? "";
+  const serviceText = serviceWarning(summary);
+  if (!rangeText && !serviceText) {
+    return null;
+  }
+  return rangeText && serviceText ? `${rangeText} | ${serviceText}` : `${rangeText}${serviceText}`;
 }
 
 function serviceDown(layerId: string): boolean {
@@ -289,6 +296,7 @@ function cbarLabel(cbarScale: number, unit: string) {
   const power = cbarScale > 1 ? `10<sup>${Math.round(Math.log10(cbarScale))}</sup>` : "";
   return `${power} ${unit}`;
 }
+
 </script>
 
 

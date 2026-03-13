@@ -63,6 +63,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   
   const shownLayers = ref<string[]>([]);
   const layersReady = ref<globalThis.Map<string, ServiceStatusMap>>(new globalThis.Map<string, ServiceStatusMap>());
+  const layerRangeWarnings = ref<globalThis.Map<string, string>>(new globalThis.Map<string, string>());
 
   // This part is still assuming that multiple maps will be temporally linked
   // If/when we want to make that not the case, we'll need to rethink this
@@ -228,6 +229,25 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     const newReady = new globalThis.Map(layersReady.value);
     newReady.set(layerName, new globalThis.Map(serviceReady));
     layersReady.value = newReady;
+  }
+
+  function setLayerWarning(layerName: string, warning: string | null) {
+    const next = new globalThis.Map(layerRangeWarnings.value);
+    if (!warning) {
+      next.delete(layerName);
+    } else {
+      next.set(layerName, warning);
+    }
+    layerRangeWarnings.value = next;
+  }
+
+  function clearLayerWarning(layerName: string) {
+    if (!layerRangeWarnings.value.has(layerName)) {
+      return;
+    }
+    const next = new globalThis.Map(layerRangeWarnings.value);
+    next.delete(layerName);
+    layerRangeWarnings.value = next;
   }
 
   function clearLayerReady(layerName: string) {
@@ -452,8 +472,11 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     
     shownLayers,
     layersReady,
+    layerRangeWarnings,
     setLayerReady,
     clearLayerReady,
+    setLayerWarning,
+    clearLayerWarning,
 
     reset,
   };
@@ -498,7 +521,7 @@ export function deserializeTempoStore(value: string): StateTree {
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady"]);
+const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "layerRangeWarnings"]);
 export function serializeTempoStore(store: TempoStore): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};

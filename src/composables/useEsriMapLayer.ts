@@ -1,4 +1,4 @@
-import { ref, shallowRef, watch, Ref, MaybeRef, toRef, computed } from 'vue';
+import { ref, shallowRef, watch, Ref, MaybeRef, toRef, computed, nextTick } from 'vue';
 import { RenderingRuleOptions } from '@/esri/ImageLayerConfig';
 import type { Map, MapSourceDataEvent, MapMouseEvent } from 'maplibre-gl';
 import { validate as uuidValidate } from "uuid";
@@ -13,8 +13,7 @@ export interface UseEsriLayer {
   esriImageSource: Ref<maplibregl.RasterTileSource | null>;
   opacity: Ref<number>;
   noEsriData: Ref<boolean>;
-  loadingEsriTimeSteps: Ref<boolean>;
-  esriTimesteps: Ref<number[]>;
+  dataRangeWarning: Ref<string | null>;
   updateEsriOpacity: (value?: number | null | undefined) => void;
   updateEsriTimeRange: () => void;
   addEsriSource: (map: Map) => void;
@@ -35,7 +34,7 @@ export function useEsriImageServiceLayer(
   layerId: string,
   opacity: MaybeRef<number>,
   variable: MaybeRef<string>,
-  _timestamp: MaybeRef<number>,
+  _timestamp: MaybeRef<number | null>,
   options: ImageSerivceLayerOptions = {},
 ): UseEsriLayer {
 
@@ -48,9 +47,127 @@ export function useEsriImageServiceLayer(
   
   const tds = new TempoDataService(serviceUrl, variableRef.value);
   const serviceReady = ref<ServiceStatusMap>(new globalThis.Map());
+  const esriTimesteps = ref<number[]>([]);
+  let lastEsriTimeRange: { from: number; to: number } | null = null;
+  let esriTimestepsPromise: Promise<number[]> | null = null;
+
+  const dataRangeWarning = ref<string | null>(null);
+
+  function rangesEqual(a: { from: Date; to: Date }, b: { from: number; to: number }): boolean {
+    return a.from.getTime() === b.from && a.to.getTime() === b.to;
+  }
+
+  function isInvalidTimestamp(value: number | null | undefined): boolean {
+    return value === null || value === undefined || Number.isNaN(value);
+  }
+
+  function loadEsriTimesteps() {
+    if (esriTimestepsPromise) return esriTimestepsPromise;
+    esriTimestepsPromise = tds.getMergedTimesteps()
+      .then((steps) => {
+        esriTimesteps.value = steps;
+        return steps;
+      })
+      .catch((error) => {
+        console.error(`[${esriLayerId}] Failed to load ESRI timesteps`, error);
+        esriTimesteps.value = [];
+        return [];
+      });
+    return esriTimestepsPromise;
+  }
+
+  function resolveTimestampRange(value: number | null | undefined): {
+    range: { from: Date; to: Date } | null;
+    warning: string | null;
+  } {
+    if (isInvalidTimestamp(value)) {
+      return { range: null, warning: null };
+    }
+    const steps = esriTimesteps.value;
+    const time = Number(value);
+
+    if (steps.length === 0) {
+      return { range: { from: new Date(time - 1), to: new Date(time + 1) }, warning: null };
+    }
+
+    const first = steps[0];
+    const last = steps[steps.length - 1];
+    if (time <= first || time >= last) {
+      const firstOrLast = time <= first ? first : last;
+      const outOfRange = time < first || time > last;
+      if (outOfRange) {
+        const boundary = new Date(firstOrLast).toISOString();
+        const warning = time < first
+          ? `Selected date is before the first available layer date (${boundary}); showing nearest available date.`
+          : `Selected date is after the last available layer date (${boundary}); showing nearest available date.`;
+        console.warn(warning);
+        return { range: { from: new Date(firstOrLast), to: new Date(firstOrLast) }, warning };
+      }
+      return { range: { from: new Date(firstOrLast), to: new Date(firstOrLast) }, warning: null };
+    }
+
+    let low = 0;
+    let high = steps.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (steps[mid] < time) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+
+    const prev = steps[low - 1];
+    const next = steps[low];
+    if (next === time) {
+      return { range: { from: new Date(time), to: new Date(time) }, warning: null };
+    }
+    if (prev === undefined || next === undefined) {
+      
+      const warning = `No ESRI timestep slice found for ${new Date(time ?? 0).toISOString()}`;
+      console.warn(warning);
+      return { range: null, warning };
+    }
+
+    return {
+      range: { from: new Date(prev), to: new Date(next) },
+      warning: null,
+    };
+  }
+
   function serviceStatusAllFailed(status: ServiceStatusMap): boolean {
     return status.size > 0 && [...status.values()].every((ready) => ready === false);
   }
+
+  function setEsriTimeRange(value: number | null | undefined) {
+    const result = resolveTimestampRange(value);
+    const { range, warning } = result;
+    dataRangeWarning.value = warning;
+
+    if (!range) {
+      if (isInvalidTimestamp(value)) {
+        console.warn(`[${esriLayerId}] timestamp is not available for ESRI date update`);
+        dataRangeWarning.value = null;
+        return;
+      }
+      noEsriData.value = true;
+      return;
+    }
+
+    console.log(`[${esriLayerId}] esri imageset timestamp set to `, range.from);
+    noEsriData.value = false;
+    if (_hasEsriSource() && dynamicMapService.value) {
+      const candidate = { from: range.from.getTime(), to: range.to.getTime() };
+      if (lastEsriTimeRange && rangesEqual(range, lastEsriTimeRange)) {
+        console.debug(`[${esriLayerId}] ESRI date range unchanged; skipping setDate`);
+        return;
+      }
+      dynamicMapService.value.setDate(range.from, range.to);
+      lastEsriTimeRange = candidate;
+    }
+  }
+
+  const updateEsriTimeRange = () => setEsriTimeRange(timestamp.value);
 
   function getServiceStatus() {
     serviceReady.value = new globalThis.Map(tds.publicServiceStatus);
@@ -135,9 +252,11 @@ export function useEsriImageServiceLayer(
       console.log(`ESRI source ${esriLayerId} loaded`);
       esriImageSource.value = map.value?.getSource(esriLayerId) as maplibregl.RasterTileSource;
       updateEsriOpacity();
-      if (dynamicMapService.value) {
-        dynamicMapService.value.setDate(new Date(timestamp.value - 1), new Date(timestamp.value + 1));
-      }
+      void loadEsriTimesteps().finally(() => {
+        nextTick(() => {
+          setEsriTimeRange(timestamp.value);
+        });
+      });
       if (options.visible !== undefined && !options.visible) {
         map.value?.setLayoutProperty(esriLayerId, 'visibility', 'none');
       }
@@ -170,6 +289,7 @@ export function useEsriImageServiceLayer(
     }
 
     try {
+      void loadEsriTimesteps();
       dynamicMapService.value = createImageService(mMap, url.value, esriOptions.value);
 
       addLayer(mMap);
@@ -191,7 +311,12 @@ export function useEsriImageServiceLayer(
       clickHandler.value = (e: MapMouseEvent) => {
         if (_hasEsriSource() && map.value) {
           const point = { x: e.lngLat.lng, y: e.lngLat.lat } as PointBounds;
-          const timeRange = {start: timestamp.value - 1, end: timestamp.value + 1};
+          const rangeResult = resolveTimestampRange(timestamp.value);
+          const range = rangeResult.range;
+          if (!range) {
+            return;
+          }
+          const timeRange = {start: range.from.getTime(), end: range.to.getTime()};
           tds.fetchSample(point, timeRange).then((val) => {
             console.log(`[${esriLayerId}] Value at point`, point, 'is', val.samples.map(v => v.value));
           }).catch((err) => {
@@ -220,19 +345,18 @@ export function useEsriImageServiceLayer(
     }
     dynamicMapService.value = null;
     esriImageSource.value = null;
+    lastEsriTimeRange = null;
   }
   
   function _hasEsriSource() {
     return map.value?.getSource(esriLayerId) !== undefined;
   }
   
+  watch(esriTimesteps, () => {
+    updateEsriTimeRange();
+  });
   watch(timestamp, (_value) => {
-    console.log(`[${esriLayerId}] esri imageset timestamp set to `, _value ? new Date(_value) : null);
-    if ( _hasEsriSource() && dynamicMapService.value) {
-      dynamicMapService.value.setDate(new Date(_value-1), new Date(_value+1));
-    } else {
-      console.warn(`[${esriLayerId}] ESRI source not yet available`);
-    }
+    setEsriTimeRange(_value);
   });
   
   
@@ -269,11 +393,11 @@ export function useEsriImageServiceLayer(
     esriImageSource,
     opacity: opacityRef,
     noEsriData,
+    dataRangeWarning,
+    updateEsriTimeRange,
     updateEsriOpacity,
     addEsriSource,
     removeEsriSource,
     serviceReady,
   } as UseEsriLayer;
 }
-
-
