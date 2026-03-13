@@ -13,7 +13,7 @@
     >
       <layer-order-control
         :mapRef="map"
-        :order="['power-plants-layer', 'aqi-layer-aqi', 'pop-dens', 'land-use','hms-fire', 'tempo-o3', 'tempo-hcho', 'tempo-no2', 'stamen-toner-lines', 'stamen-toner-labels']"
+        :order="['power-plants-layer', 'aqi-layer-aqi', 'pop-dens', 'land-use', 'pace-chlor', 'pace-color', 'pace-dirt','hms-fire', 'tempo-o3', 'tempo-hcho', 'tempo-no2', 'stamen-toner-lines', 'stamen-toner-labels']"
       >
       </layer-order-control>
       <!-- center with d-block mx-auto -->

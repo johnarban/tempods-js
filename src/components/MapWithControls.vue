@@ -233,6 +233,11 @@ const popLayer = addPopulationDensityLayer();
 import { addLandUseLayer } from "@/composables/addLandUse";
 const sentinalLandUseLayer = addLandUseLayer();
 
+import { addPaceLayer } from "@/composables/addPACE";
+const paceLayer = addPaceLayer('chlor', 'pace-chlor', timestamp);
+const paceLayer2 = addPaceLayer('avw', 'pace-color', timestamp);
+const paceLayer3 = addPaceLayer('adg', 'pace-dirt', timestamp);
+
 const hmsFire = addHMSFire(singleDateSelected, {
   layerName: 'hms-fire',
   visible: false,
@@ -270,6 +275,14 @@ function syncLayerReady(layerName: string, serviceReady: ServiceStatusMap | unde
   store.setLayerReady(layerName, serviceReady);
 }
 
+function syncLayerWarning(layerName: string, warning: string | null | undefined) {
+  if (!warning) {
+    store.clearLayerWarning(layerName);
+    return;
+  }
+  store.setLayerWarning(layerName, warning);
+}
+
 function addAdvancedLayers(m: Map | null) {
   if (m === null) {
     console.warn('Tried to addAdvancedLayers but map was null');
@@ -290,6 +303,9 @@ function addAdvancedLayers(m: Map | null) {
   tryCatch('aqi-layer-aqi', () => aqiLayer.addToMap(m));
   tryCatch('pop-dens', () => popLayer.addEsriSource(m));
   tryCatch('land-use', () => sentinalLandUseLayer.addEsriSource(m));
+  tryCatch('pace-chlor', () => paceLayer.addEsriSource(m));
+  tryCatch('pace-color', () => paceLayer2.addEsriSource(m));
+  tryCatch('pace-dirt', () => paceLayer3.addEsriSource(m));
   tryCatch('hms-fire', () => hmsFire.addToMap(m));
   tryCatch('tempo-hcho', () => hchoLayer.addEsriSource(m));
   tryCatch('tempo-o3', () => ozoneLayer.addEsriSource(m));
@@ -297,6 +313,14 @@ function addAdvancedLayers(m: Map | null) {
   syncLayerReady('tempo-o3', ozoneLayer.serviceReady.value);
   syncLayerReady('pop-dens', popLayer.serviceReady.value);
   syncLayerReady('land-use', sentinalLandUseLayer.serviceReady.value);
+  syncLayerReady('pace-chlor', paceLayer.serviceReady.value);
+  syncLayerReady('pace-color', paceLayer2.serviceReady.value);
+  syncLayerReady('pace-dirt', paceLayer3.serviceReady.value);
+  syncLayerWarning('pop-dens', popLayer.dataRangeWarning.value);
+  syncLayerWarning('land-use', sentinalLandUseLayer.dataRangeWarning.value);
+  syncLayerWarning('pace-chlor', paceLayer.dataRangeWarning.value);
+  syncLayerWarning('pace-color', paceLayer2.dataRangeWarning.value);
+  syncLayerWarning('pace-dirt', paceLayer3.dataRangeWarning.value);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {
     if (m.getLayer('aqi-layer-aqi')) {
@@ -318,6 +342,9 @@ function removeAdvancedLayers(m: Map | null) {
   aqiLayer.removeFromMap(m);
   popLayer.removeEsriSource();
   sentinalLandUseLayer.removeEsriSource();
+  paceLayer.removeEsriSource();
+  paceLayer2.removeEsriSource();
+  paceLayer3.removeEsriSource();
   hmsFire.removeFromMap(m);
   hchoLayer.removeEsriSource();
   ozoneLayer.removeEsriSource();
@@ -326,6 +353,14 @@ function removeAdvancedLayers(m: Map | null) {
   store.clearLayerReady('tempo-o3');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
+  store.clearLayerReady('pace-chlor');
+  store.clearLayerReady('pace-color');
+  store.clearLayerReady('pace-dirt');
+  store.clearLayerWarning('pop-dens');
+  store.clearLayerWarning('land-use');
+  store.clearLayerWarning('pace-chlor');
+  store.clearLayerWarning('pace-color');
+  store.clearLayerWarning('pace-dirt');
 }
 
 const onMapReady = (m: Map) => {
@@ -363,7 +398,10 @@ watch(() => [
   ozoneLayer.serviceReady.value,
   popLayer.serviceReady.value,
   sentinalLandUseLayer.serviceReady.value,
-], ([no2Ready, hchoReady, ozoneReady, popReady, landUseReady]) => {
+  paceLayer.serviceReady.value,
+  paceLayer2.serviceReady.value,
+  paceLayer3.serviceReady.value,
+], ([no2Ready, hchoReady, ozoneReady, popReady, landUseReady, paceReady,paceReady2,paceReady3]) => {
   syncLayerReady('tempo-no2', no2Ready);
 
   if (showAdvancedLayers.value) {
@@ -371,6 +409,9 @@ watch(() => [
     syncLayerReady('tempo-o3', ozoneReady);
     syncLayerReady('pop-dens', popReady);
     syncLayerReady('land-use', landUseReady);
+    syncLayerReady('pace-chlor', paceReady);
+    syncLayerReady('pace-color', paceReady2);
+    syncLayerReady('pace-dirt', paceReady3);
     return;
   }
 
@@ -378,7 +419,32 @@ watch(() => [
   store.clearLayerReady('tempo-o3');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
+  store.clearLayerReady('pace-chlor');
+  store.clearLayerReady('pace-color');
+  store.clearLayerReady('pace-dirt');
 }, { deep: true, immediate: true });
+
+watch(() => [
+  popLayer.dataRangeWarning.value,
+  sentinalLandUseLayer.dataRangeWarning.value,
+  paceLayer.dataRangeWarning.value,
+  paceLayer2.dataRangeWarning.value,
+  paceLayer3.dataRangeWarning.value,
+], ([popRangeWarning, landUseRangeWarning, paceRangeWarning,paceRangeWarning2,paceRangeWarning3]) => {
+  if (!showAdvancedLayers.value) {
+    store.clearLayerWarning('pop-dens');
+    store.clearLayerWarning('land-use');
+    store.clearLayerWarning('pace-chlor');
+    store.clearLayerWarning('pace-color');
+    store.clearLayerWarning('pace-dirt');
+    return;
+  }
+  syncLayerWarning('pop-dens', popRangeWarning);
+  syncLayerWarning('land-use', landUseRangeWarning);
+  syncLayerWarning('pace-chlor', paceRangeWarning);
+  syncLayerWarning('pace-dirt', paceRangeWarning2);
+  syncLayerWarning('pace-color', paceRangeWarning3);
+});
 
 import { stretches, colorramps, rgbstretches, rgbcolorramps, type ColorRamps } from "@/esri/ImageLayerConfig";
   
