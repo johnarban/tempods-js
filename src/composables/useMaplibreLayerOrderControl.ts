@@ -1,6 +1,6 @@
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { type Ref, type MaybeRef, ref, toRef, watch, computed, nextTick, onBeforeUnmount } from 'vue';
+import { type Ref, type MaybeRef, ref, shallowRef, toRef, watch, computed, nextTick, onBeforeUnmount } from 'vue';
 import M from 'maplibre-gl';
 
 function checkArrayEquality<T>(arr1: T[], arr2: T[]) {
@@ -582,7 +582,7 @@ export class MaplibreLayerOrderControl extends PsuedoEvent {
 interface UseMaplibreLayerOrderControlReturn {
   desiredOrder: Ref<string[]>;
   currentOrder: Ref<string[]>;
-  controller: MaplibreLayerOrderControl | null;
+  controller: Ref<MaplibreLayerOrderControl | null>;
   
 }
 
@@ -596,11 +596,11 @@ export function useMaplibreLayerOrderControl(
 
   const desiredOrder = ref<string[]>(initialOrder);
   const currentOrder = ref<string[]>([]);
-  let controller: MaplibreLayerOrderControl | null = null;
+  const controller = shallowRef<MaplibreLayerOrderControl | null>(null);
   
   function syncCurrentOrder() {
-    if (controller) {
-      const latest = controller.currentlyManagedLayerOrder;
+    if (controller.value) {
+      const latest = controller.value.currentlyManagedLayerOrder;
       if (!checkArrayEquality(currentOrder.value, latest)) {
         currentOrder.value = latest;
       }
@@ -610,12 +610,12 @@ export function useMaplibreLayerOrderControl(
   // Initialize the controller when the map is ready
   function init(mapValue: M.Map) {
     // Tear down any previous controller first
-    if (controller) {
-      controller.destroy();
+    if (controller.value) {
+      controller.value.destroy();
     }
     
-    controller = new MaplibreLayerOrderControl(mapValue, desiredOrder.value, {keepAtTop: moveToTop, linkedLayers: linkedLayers});
-    controller.on('layer-order-changed', () => {
+    controller.value = new MaplibreLayerOrderControl(mapValue, desiredOrder.value, {keepAtTop: moveToTop, linkedLayers: linkedLayers});
+    controller.value.on('layer-order-changed', () => {
       syncCurrentOrder();
     });
     syncCurrentOrder();
@@ -633,10 +633,10 @@ export function useMaplibreLayerOrderControl(
     if (newValue && newValue !== oldValue) {
       // Map changed (or became available) — (re)init the controller
       init(newValue);
-    } else if (!newValue && controller) {
+    } else if (!newValue && controller.value) {
       console.log('Map is now null, destroying controller');
-      controller.destroy();
-      controller = null;
+      controller.value.destroy();
+      controller.value = null;
       currentOrder.value = [];
     }
   });
@@ -651,8 +651,8 @@ export function useMaplibreLayerOrderControl(
   
   
   onBeforeUnmount(() => {
-    controller?.destroy();
-    controller = null;
+    controller.value?.destroy();
+    controller.value = null;
   });
   
   
