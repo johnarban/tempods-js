@@ -20,6 +20,7 @@ import greenfromwhite from "./custom_green_from_white";
 import cyanfromwhite from "./custom_cyan_from_white";
 import yellowfromwhite from "./custom_yellow_from_white";
 import magentafromwhite from "./custom_magenta_from_white";
+import purples from "./Purples";
 
 
 import type { ColorMaps } from "./types";
@@ -46,6 +47,7 @@ export const colormaps: ColorMaps = {
   "cyanfromwhite": cyanfromwhite.colormap,
   "yellowfromwhite": yellowfromwhite.colormap,
   "magentafromwhite": magentafromwhite.colormap,
+  "purples": purples.colormap,
 } as const;
 
 // add custom colormaps here
@@ -64,11 +66,12 @@ export const nonEsriColormaps = {
   'cyanfromwhite': {rgb: cyanfromwhite.colormap, esriColorRamp: cyanfromwhite.esri},
   'yellowfromwhite': {rgb: yellowfromwhite.colormap, esriColorRamp: yellowfromwhite.esri},
   'magentafromwhite': {rgb: magentafromwhite.colormap, esriColorRamp: magentafromwhite.esri},
+  'purples': {rgb: purples.colormap, esriColorRamp: purples.esri},
   // overriding the colormap from esri
   'cividis': {rgb: cividis.colormap, esriColorRamp: cividis.esri}
 } as const;
 
-export type AvailableColorMaps = 'magma' | 'inferno' | 'plasma' | 'viridis' | 'cividis' | 'svs' | 'gray' | 'sargassum' | 'haline' | 'redfromblack' | 'bluefromblack' | 'greenfromblack' | 'cyanfromblack' | 'yellowfromblack' | 'magentafromblack' | 'redfromwhite' | 'bluefromwhite' | 'greenfromwhite' | 'cyanfromwhite' | 'yellowfromwhite' | 'magentafromwhite';
+export type AvailableColorMaps = 'magma' | 'inferno' | 'plasma' | 'viridis' | 'cividis' | 'svs' | 'gray' | 'sargassum' | 'haline' | 'redfromblack' | 'bluefromblack' | 'greenfromblack' | 'cyanfromblack' | 'yellowfromblack' | 'magentafromblack' | 'redfromwhite' | 'bluefromwhite' | 'greenfromwhite' | 'cyanfromwhite' | 'yellowfromwhite' | 'magentafromwhite' | 'purples';
 export type AvailableReverseColorMaps = `${AvailableColorMaps}_r`;
 export type AllAvailableColorMaps = AvailableColorMaps 
   | AvailableReverseColorMaps 

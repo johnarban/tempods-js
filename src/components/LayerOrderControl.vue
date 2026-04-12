@@ -71,6 +71,23 @@
                 </colorbar-horizontal>
               </template>
             </local-scope>
+            <colorbar-horizontal
+              v-if="element === 'places-asthma-layer'"
+              v-show="visible"
+              cmap-name="purples"
+              :cmap="colormapFunction('purples')"
+              background-color="transparent"
+              height="15px"
+              font-size="9pt"
+              :nsteps="255"
+              start-value="5"
+              end-value="15"
+              :extend="false"
+            >
+              <template #label>
+                <span>%</span>
+              </template>
+            </colorbar-horizontal>
             <!-- Legend -->
 
             <NarrowExpansionPanel v-show="visible" :item="element" v-if="hasLegend.includes(element)" :label="element==='power-plants-layer' ? 'Show Filter' : 'Show Legend'">
@@ -125,8 +142,9 @@ interface Emits {
 const _emit = defineEmits<Emits>();
 
   
-const connections = {
+const connections: Record<string, string[]> = {
   'stamen-toner-lines': ['coastline-custom', 'states-custom', 'stamen-toner-lines'],
+  'places-asthma-layer': ['places-asthma-layer-outline'],
 };
 const getConnectedItems = (layer: string): string[] => {
   return connections[layer] ?? [];
@@ -166,6 +184,7 @@ const layerNames: Record<string, string | undefined> = {
   "hms-fire": "Fire Detections",
   'tempo-hcho': "TEMPO HCHO",
   'tempo-o3': "TEMPO Ozone",
+  "places-asthma-layer": "Asthma Prevalence",
 };
 
 const layerInfo: Record<string, string | undefined> = {
@@ -207,6 +226,11 @@ const layerInfo: Record<string, string | undefined> = {
                          The three major categories for generating electricity are fossil fuels, nuclear energy, and renewable energy sources.
                          <br/><br/>
                          Source: U.S. Energy Information Administration (EIA)</a>, provided by FEMA Geospatial Resource Center (<a href="https://gis-fema.hub.arcgis.com/datasets/b063316fac7345dba4bae96eaa813b2f/about" target="_blank" rel="noopener noreferrer">link</a>). Last accessed Oct. 16, 2025`,
+  "places-asthma-layer": `This layer shows the age-adjusted prevalence of current asthma among adults aged 18 and older, displayed as a percentage. County areas are colored by the prevalence value using data from the CDC PLACES dataset, derived from the Behavioral Risk Factor Surveillance System (BRFSS).
+                          <br/><br/>
+                          Colors range from light purple (lower prevalence, ~5%) to dark purple (higher prevalence, ~15%+). The data is loaded on-demand as you zoom and pan the map.
+                          <br/><br/>
+                          Source: CDC PLACES: Local Data for Better Health (<a href="https://www.cdc.gov/places/" target="_blank" rel="noopener noreferrer">link</a>)`,
 
 };
 

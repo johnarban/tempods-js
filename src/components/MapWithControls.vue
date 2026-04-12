@@ -233,6 +233,9 @@ const popLayer = addPopulationDensityLayer();
 import { addLandUseLayer } from "@/composables/addLandUse";
 const sentinalLandUseLayer = addLandUseLayer();
 
+import { addAsthmaLayer } from "@/composables/addAsthma";
+const asthmaLayer = addAsthmaLayer();
+
 const hmsFire = addHMSFire(singleDateSelected, {
   layerName: 'hms-fire',
   visible: false,
@@ -307,6 +310,7 @@ function addAdvancedLayers(m: Map | null) {
   }
   
   tryCatch('power-plants-layer', () => pp.addLayer());
+  tryCatch('places-asthma-layer', () => asthmaLayer.addToMap(m));
   // pp.togglePowerPlants(false);
 }
 
@@ -322,6 +326,7 @@ function removeAdvancedLayers(m: Map | null) {
   hchoLayer.removeEsriSource();
   ozoneLayer.removeEsriSource();
   pp.removeLayer();
+  asthmaLayer.removeFromMap(m);
   store.clearLayerReady('tempo-hcho');
   store.clearLayerReady('tempo-o3');
   store.clearLayerReady('pop-dens');
