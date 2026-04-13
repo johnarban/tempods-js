@@ -224,7 +224,6 @@ __metadata:
   dependencies:
     "@all1ndev/vue-local-scope": "npm:^0.3.2"
     "@cosmicds/vue-toolkit": "npm:^0.5.0"
-    "@esri/maplibre-arcgis": "npm:^1.2.0"
     "@fortawesome/fontawesome-svg-core": "npm:^6.5.1"
     "@fortawesome/free-solid-svg-icons": "npm:^6.5.1"
     "@fortawesome/vue-fontawesome": "npm:^3.0.5"
@@ -341,88 +340,6 @@ __metadata:
   version: 8.57.1
   resolution: "@eslint/js@npm:8.57.1"
   checksum: 10/7562b21be10c2adbfa4aa5bb2eccec2cb9ac649a3569560742202c8d1cb6c931ce634937a2f0f551e078403a1c1285d6c2c0aa345dafc986149665cd69fe8b59
-  languageName: node
-  linkType: hard
-
-"@esri/arcgis-rest-basemap-sessions@npm:^4.10.1":
-  version: 4.10.2
-  resolution: "@esri/arcgis-rest-basemap-sessions@npm:4.10.2"
-  dependencies:
-    mitt: "npm:^3.0.1"
-    tslib: "npm:^2.3.0"
-  peerDependencies:
-    "@esri/arcgis-rest-request": ^4.0.0
-  checksum: 10/b9112727cc3ed6edd2915c2aebb50e68552f5fdbf667f7164751000e9ef479c2f480613e77ce916303b41fc4f2350d0421aae56e4be1318047d61457e232a717
-  languageName: node
-  linkType: hard
-
-"@esri/arcgis-rest-feature-service@npm:^4.10.1":
-  version: 4.10.2
-  resolution: "@esri/arcgis-rest-feature-service@npm:4.10.2"
-  dependencies:
-    pbf: "npm:^4.0.1"
-    tslib: "npm:^2.3.0"
-  peerDependencies:
-    "@esri/arcgis-rest-portal": ^4.0.0
-    "@esri/arcgis-rest-request": ^4.0.0
-  checksum: 10/a6ef9b7f1650840b5e545bd4bd99049b85466c9f5281d69d08cb915838cc1481970c6b8ab43ae665e4c929f8a918d84301b823c372bef12e5807a20a2b6e5895
-  languageName: node
-  linkType: hard
-
-"@esri/arcgis-rest-fetch@npm:^4.10.2":
-  version: 4.10.2
-  resolution: "@esri/arcgis-rest-fetch@npm:4.10.2"
-  dependencies:
-    node-fetch: "npm:^3.2.10"
-  checksum: 10/48cb051395a127bd129449758d15ebfdc4a692bc9fe9897ad593236e0b17efbcd5b5557fb3749f9271af598284ea23dde45079bcb42ad4ef181055ec9daac405
-  languageName: node
-  linkType: hard
-
-"@esri/arcgis-rest-form-data@npm:^4.10.2":
-  version: 4.10.2
-  resolution: "@esri/arcgis-rest-form-data@npm:4.10.2"
-  dependencies:
-    formdata-node: "npm:^4.1.0"
-  checksum: 10/4c4836aeab08cd506e585159b5d12c05facaecd24938f3ef92e27b482b5acd691c89463b32b79e3c6ea55e775a84140969794c3c88577678c2e5e7c51c9fac87
-  languageName: node
-  linkType: hard
-
-"@esri/arcgis-rest-portal@npm:^4.10.1":
-  version: 4.10.2
-  resolution: "@esri/arcgis-rest-portal@npm:4.10.2"
-  dependencies:
-    tslib: "npm:^2.3.0"
-  peerDependencies:
-    "@esri/arcgis-rest-request": ^4.0.0
-  checksum: 10/f3510ce265c590a5148ee5124a27a7712c7eeba14e42ddec1f2af807697b912dec03e7dba726648bd145912926a7265fd0cdec74a0b4b7706cdeb4cf0f414766
-  languageName: node
-  linkType: hard
-
-"@esri/arcgis-rest-request@npm:^4.10.1":
-  version: 4.10.2
-  resolution: "@esri/arcgis-rest-request@npm:4.10.2"
-  dependencies:
-    "@esri/arcgis-rest-fetch": "npm:^4.10.2"
-    "@esri/arcgis-rest-form-data": "npm:^4.10.2"
-    mitt: "npm:^3.0.0"
-    tslib: "npm:^2.3.1"
-  checksum: 10/149237253ea63b183900551f4e053f075e6e47fada6cf592442c7806bdbb2cc4ae2cd269b7c5e00906ef94ebd3119092246f762f3dcd4042a70a27f02d502214
-  languageName: node
-  linkType: hard
-
-"@esri/maplibre-arcgis@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "@esri/maplibre-arcgis@npm:1.2.0"
-  dependencies:
-    "@esri/arcgis-rest-basemap-sessions": "npm:^4.10.1"
-    "@esri/arcgis-rest-feature-service": "npm:^4.10.1"
-    "@esri/arcgis-rest-portal": "npm:^4.10.1"
-    "@esri/arcgis-rest-request": "npm:^4.10.1"
-    "@mapbox/tilebelt": "npm:^2.0.3"
-    mitt: "npm:3.0.1"
-  peerDependencies:
-    maplibre-gl: ">=5.11.0"
-  checksum: 10/5d6100d8a6adc435ecabfde26460e0a1f8c47f9a270c8086b09ced66ef11a82eef58ad18ecc92d9be620a6c48aab29f22b7f9122152e9e973df62ba75ca1de6c
   languageName: node
   linkType: hard
 
@@ -897,13 +814,6 @@ __metadata:
   version: 1.1.0
   resolution: "@mapbox/point-geometry@npm:1.1.0"
   checksum: 10/1e649be5c6c83584fae9e043a398c61ad56f81e2ae5334deeb4048884ed1f2a5dc7e727e1757e3159ebf12e6cb1f5b059519078df8d16452bf7c7ab26323eb4a
-  languageName: node
-  linkType: hard
-
-"@mapbox/tilebelt@npm:^2.0.3":
-  version: 2.0.3
-  resolution: "@mapbox/tilebelt@npm:2.0.3"
-  checksum: 10/943895ad146f56be9a81b08beaad8d64f40893cbc854c6da8a048425be7dc30fa7b06de0e0525163ccfe1b4b64116fbb6cbda5217b92fc014dc462eff5ce6bce
   languageName: node
   linkType: hard
 
@@ -3487,13 +3397,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"data-uri-to-buffer@npm:^4.0.0":
-  version: 4.0.1
-  resolution: "data-uri-to-buffer@npm:4.0.1"
-  checksum: 10/0d0790b67ffec5302f204c2ccca4494f70b4e2d940fea3d36b09f0bb2b8539c2e86690429eb1f1dc4bcc9e4df0644193073e63d9ee48ac9fce79ec1506e4aa4c
-  languageName: node
-  linkType: hard
-
 "date-fns-tz@npm:^3.1.3":
   version: 3.2.0
   resolution: "date-fns-tz@npm:3.2.0"
@@ -4336,16 +4239,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fetch-blob@npm:^3.1.2, fetch-blob@npm:^3.1.4":
-  version: 3.2.0
-  resolution: "fetch-blob@npm:3.2.0"
-  dependencies:
-    node-domexception: "npm:^1.0.0"
-    web-streams-polyfill: "npm:^3.0.3"
-  checksum: 10/5264ecceb5fdc19eb51d1d0359921f12730941e333019e673e71eb73921146dceabcb0b8f534582be4497312d656508a439ad0f5edeec2b29ab2e10c72a1f86b
-  languageName: node
-  linkType: hard
-
 "figures@npm:^2.0.0":
   version: 2.0.0
   resolution: "figures@npm:2.0.0"
@@ -4505,25 +4398,6 @@ __metadata:
     vue-template-compiler:
       optional: true
   checksum: 10/415263839afe11c291be60e3335ece3ccdc80c5e0d91eeecf0d3060cfb72c7b0cb33be326dd24b325939357d53215e10c41e8187edb5db8a08fe9aaa8aa6c510
-  languageName: node
-  linkType: hard
-
-"formdata-node@npm:^4.1.0":
-  version: 4.4.1
-  resolution: "formdata-node@npm:4.4.1"
-  dependencies:
-    node-domexception: "npm:1.0.0"
-    web-streams-polyfill: "npm:4.0.0-beta.3"
-  checksum: 10/29622f75533107c1bbcbe31fda683e6a55859af7f48ec354a9800591ce7947ed84cd3ef2b2fcb812047a884f17a1bac75ce098ffc17e23402cd373e49c1cd335
-  languageName: node
-  linkType: hard
-
-"formdata-polyfill@npm:^4.0.10":
-  version: 4.0.10
-  resolution: "formdata-polyfill@npm:4.0.10"
-  dependencies:
-    fetch-blob: "npm:^3.1.2"
-  checksum: 10/9b5001d2edef3c9449ac3f48bd4f8cc92e7d0f2e7c1a5c8ba555ad4e77535cc5cf621fabe49e97f304067037282dd9093b9160a3cb533e46420b446c4e6bc06f
   languageName: node
   linkType: hard
 
@@ -6252,7 +6126,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mitt@npm:3.0.1, mitt@npm:^3.0.0, mitt@npm:^3.0.1":
+"mitt@npm:^3.0.1":
   version: 3.0.1
   resolution: "mitt@npm:3.0.1"
   checksum: 10/287c70d8e73ffc25624261a4989c783768aed95ecb60900f051d180cf83e311e3e59865bfd6e9d029cdb149dc20ba2f128a805e9429c5c4ce33b1416c65bbd14
@@ -6399,13 +6273,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-domexception@npm:1.0.0, node-domexception@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "node-domexception@npm:1.0.0"
-  checksum: 10/e332522f242348c511640c25a6fc7da4f30e09e580c70c6b13cb0be83c78c3e71c8d4665af2527e869fc96848924a4316ae7ec9014c091e2156f41739d4fa233
-  languageName: node
-  linkType: hard
-
 "node-fetch@npm:^2.6.7":
   version: 2.7.0
   resolution: "node-fetch@npm:2.7.0"
@@ -6417,17 +6284,6 @@ __metadata:
     encoding:
       optional: true
   checksum: 10/b24f8a3dc937f388192e59bcf9d0857d7b6940a2496f328381641cb616efccc9866e89ec43f2ec956bbd6c3d3ee05524ce77fe7b29ccd34692b3a16f237d6676
-  languageName: node
-  linkType: hard
-
-"node-fetch@npm:^3.2.10":
-  version: 3.3.2
-  resolution: "node-fetch@npm:3.3.2"
-  dependencies:
-    data-uri-to-buffer: "npm:^4.0.0"
-    fetch-blob: "npm:^3.1.4"
-    formdata-polyfill: "npm:^4.0.10"
-  checksum: 10/24207ca8c81231c7c59151840e3fded461d67a31cf3e3b3968e12201a42f89ce4a0b5fb7079b1fa0a4655957b1ca9257553200f03a9f668b45ebad265ca5593d
   languageName: node
   linkType: hard
 
@@ -8737,7 +8593,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.0.0, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.3.1":
+"tslib@npm:^2.0.0, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.3.0":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10/3e2e043d5c2316461cb54e5c7fe02c30ef6dccb3384717ca22ae5c6b5bc95232a6241df19c622d9c73b809bea33b187f6dbc73030963e29950c2141bc32a79f7
@@ -9090,20 +8946,6 @@ __metadata:
   dependencies:
     defaults: "npm:^1.0.3"
   checksum: 10/182ebac8ca0b96845fae6ef44afd4619df6987fe5cf552fdee8396d3daa1fb9b8ec5c6c69855acb7b3c1231571393bd1f0a4cdc4028d421575348f64bb0a8817
-  languageName: node
-  linkType: hard
-
-"web-streams-polyfill@npm:4.0.0-beta.3":
-  version: 4.0.0-beta.3
-  resolution: "web-streams-polyfill@npm:4.0.0-beta.3"
-  checksum: 10/dcdef67de57d83008f9dc330662b65ba4497315555dd0e4e7bcacb132ffdf8a830eaab8f74ad40a4a44f542461f51223f406e2a446ece1cc29927859b1405853
-  languageName: node
-  linkType: hard
-
-"web-streams-polyfill@npm:^3.0.3":
-  version: 3.3.3
-  resolution: "web-streams-polyfill@npm:3.3.3"
-  checksum: 10/8e7e13501b3834094a50abe7c0b6456155a55d7571312b89570012ef47ec2a46d766934768c50aabad10a9c30dd764a407623e8bfcc74fcb58495c29130edea9
   languageName: node
   linkType: hard
 

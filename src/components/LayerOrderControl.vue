@@ -226,10 +226,11 @@ const layerInfo: Record<string, string | undefined> = {
                          The three major categories for generating electricity are fossil fuels, nuclear energy, and renewable energy sources.
                          <br/><br/>
                          Source: U.S. Energy Information Administration (EIA)</a>, provided by FEMA Geospatial Resource Center (<a href="https://gis-fema.hub.arcgis.com/datasets/b063316fac7345dba4bae96eaa813b2f/about" target="_blank" rel="noopener noreferrer">link</a>). Last accessed Oct. 16, 2025`,
-  "places-asthma-layer": `This layer shows the age-adjusted prevalence of current asthma among adults aged 18 and older, displayed as a percentage. County areas are colored by the prevalence value using data from the CDC PLACES dataset, derived from the Behavioral Risk Factor Surveillance System (BRFSS).
+  "places-asthma-layer": `PLACES is a health data project from the CDC and its partners. It gives local estimates about health in communities across the United States, including counties, cities, neighborhoods, and ZIP Code areas.
                           <br/><br/>
-                          Colors range from light purple (lower prevalence, ~5%) to dark purple (higher prevalence, ~15%+). The data is loaded on-demand as you zoom and pan the map.
+                          For asthma, PLACES shows estimates of how many adults currently have asthma in each census tract. To make these estimates, it uses information from national health surveys and U.S. Census data.
                           <br/><br/>
+                          This helps people compare asthma rates in different communities and better understand where asthma may be a bigger health concern.
                           Source: CDC PLACES: Local Data for Better Health (<a href="https://www.cdc.gov/places/" target="_blank" rel="noopener noreferrer">link</a>)`,
 
 };
@@ -271,6 +272,11 @@ function serviceLoading(layerId: string): boolean {
 }
 
 function warningMessage(layerId: string): string | null {
+  // Custom messages for layers that use well-known status keys
+  const readiness = layersReady.value.get(layerId);
+  if (readiness?.has('zoom-in')) return 'Zoom in to see tract-level data';
+  if (readiness?.has('loading') && readiness.get('loading') === null) return 'Loading data…';
+
   const summary = statusSummary(layerId);
   if (summary.values.length === 0) {
     return null;
@@ -294,13 +300,18 @@ function warningMessage(layerId: string): string | null {
 }
 
 function serviceDown(layerId: string): boolean {
-  const readiness = statusSummary(layerId).values;
+  // Layers using well-known status keys (zoom-in, loading) are not "down"
+  const readiness = layersReady.value.get(layerId);
+  if (readiness?.has('zoom-in') || readiness?.has('loading')) {
+    return false;
+  }
+  const values = statusSummary(layerId).values;
   // if readiness is empty, we haven't checked it yet, so don't disable yet
-  if (readiness.length === 0) {
+  if (values.length === 0) {
     return false;
   }
   // if all are explicitly false, disable the layer toggle
-  if (readiness.every(ready => ready === false)) {
+  if (values.every(ready => ready === false)) {
     return true;
   }
   return false;

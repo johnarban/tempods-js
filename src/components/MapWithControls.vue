@@ -236,6 +236,16 @@ const sentinalLandUseLayer = addLandUseLayer();
 import { addAsthmaLayer } from "@/composables/addAsthma";
 const asthmaLayer = addAsthmaLayer();
 
+watch(() => asthmaLayer.status.value, (s) => {
+  if (s === 'loading') {
+    store.setLayerReady('places-asthma-layer', new globalThis.Map([['loading', null]]));
+  } else if (s === 'zoom-in') {
+    store.setLayerReady('places-asthma-layer', new globalThis.Map([['zoom-in', false]]));
+  } else {
+    store.clearLayerReady('places-asthma-layer');
+  }
+}, { immediate: true });
+
 const hmsFire = addHMSFire(singleDateSelected, {
   layerName: 'hms-fire',
   visible: false,
