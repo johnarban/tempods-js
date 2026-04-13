@@ -234,17 +234,22 @@ import { addLandUseLayer } from "@/composables/addLandUse";
 const sentinalLandUseLayer = addLandUseLayer();
 
 import { addAsthmaLayer } from "@/composables/addAsthma";
-const asthmaLayer = addAsthmaLayer();
+const asthmaCounties = addAsthmaLayer('places-asthma-counties', 2);
+const asthmaTracts = addAsthmaLayer('places-asthma-tracts', 3);
 
-watch(() => asthmaLayer.status.value, (s) => {
-  if (s === 'loading') {
-    store.setLayerReady('places-asthma-layer', new globalThis.Map([['loading', null]]));
-  } else if (s === 'zoom-in') {
-    store.setLayerReady('places-asthma-layer', new globalThis.Map([['zoom-in', false]]));
-  } else {
-    store.clearLayerReady('places-asthma-layer');
-  }
-}, { immediate: true });
+function syncAsthmaStatus(layer: ReturnType<typeof addAsthmaLayer>) {
+  watch(() => layer.status.value, (s) => {
+    if (s === 'loading') {
+      store.setLayerReady(layer.layerId, new globalThis.Map([['loading', null]]));
+    } else if (s === 'zoom-in') {
+      store.setLayerReady(layer.layerId, new globalThis.Map([['zoom-in', false]]));
+    } else {
+      store.clearLayerReady(layer.layerId);
+    }
+  }, { immediate: true });
+}
+syncAsthmaStatus(asthmaCounties);
+syncAsthmaStatus(asthmaTracts);
 
 const hmsFire = addHMSFire(singleDateSelected, {
   layerName: 'hms-fire',
@@ -320,7 +325,8 @@ function addAdvancedLayers(m: Map | null) {
   }
   
   tryCatch('power-plants-layer', () => pp.addLayer());
-  tryCatch('places-asthma-layer', () => asthmaLayer.addToMap(m));
+  tryCatch(asthmaCounties.layerId, () => asthmaCounties.addToMap(m));
+  tryCatch(asthmaTracts.layerId, () => asthmaTracts.addToMap(m));
   // pp.togglePowerPlants(false);
 }
 
@@ -336,7 +342,8 @@ function removeAdvancedLayers(m: Map | null) {
   hchoLayer.removeEsriSource();
   ozoneLayer.removeEsriSource();
   pp.removeLayer();
-  asthmaLayer.removeFromMap(m);
+  asthmaCounties.removeFromMap(m);
+  asthmaTracts.removeFromMap(m);
   store.clearLayerReady('tempo-hcho');
   store.clearLayerReady('tempo-o3');
   store.clearLayerReady('pop-dens');

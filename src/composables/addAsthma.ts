@@ -52,10 +52,6 @@ const PAGE_SIZE = 2000;
 
 export type AsthmaStatus = "idle" | "loading" | "zoom-in" | "ready";
 
-export const ASTHMA_LAYER_ID = "places-asthma-layer";
-const ASTHMA_OUTLINE_LAYER_ID = "places-asthma-layer-outline";
-const SOURCE_ID = "places-asthma-source";
-
 /**
  * Fetch features from an ArcGIS FeatureServer layer within a bounding box,
  * paginating automatically to handle the server's maxRecordCount limit.
@@ -145,10 +141,13 @@ async function fetchAllFeatures(
 // Only layer 3 uses viewport-based loading with a minimum zoom requirement.
 const VIEWPORT_LAYERS = new Set([3]);
 
-export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
+export function addAsthmaLayer(layerName: string, layerIndex: number = DEFAULT_LAYER_INDEX) {
   const url = `${PLACES_BASE_URL}/${layerIndex}`;
   const config = LAYER_CONFIGS[layerIndex] ?? LAYER_CONFIGS[DEFAULT_LAYER_INDEX];
   const useViewportLoading = VIEWPORT_LAYERS.has(layerIndex);
+  const fillLayerId = layerName;
+  const outlineId = `${layerName}-outline`;
+  const sourceId = `${layerName}-source`;
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const status: Ref<AsthmaStatus> = ref("idle");
@@ -157,11 +156,25 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
   let moveEndHandler: (() => void) | null = null;
   // Abort controller to cancel in-flight fetches when viewport changes
   let fetchController: AbortController | null = null;
-  // Track which bounds we've already loaded to avoid re-fetching
-  let lastBoundsKey = "";
+  // Accumulated features for viewport-loaded layers (keyed by first idField to deduplicate)
+  const loadedFeatures = new globalThis.Map<string, GeoJSON.Feature>();
 
   function getSource(): GeoJSONSource | undefined {
-    return mapRef?.getSource(SOURCE_ID) as GeoJSONSource | undefined;
+    return mapRef?.getSource(sourceId) as GeoJSONSource | undefined;
+  }
+
+  function featureKey(f: GeoJSON.Feature): string {
+    return config.idFields.map(k => f.properties?.[k] ?? "").join("|");
+  }
+
+  function flushToSource(): void {
+    const source = getSource();
+    if (source) {
+      source.setData({
+        type: "FeatureCollection",
+        features: Array.from(loadedFeatures.values()),
+      });
+    }
   }
 
   async function loadViewport(): Promise<void> {
@@ -170,16 +183,11 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
     const zoom = mapRef.getZoom();
     if (zoom < MIN_ZOOM) {
       status.value = "zoom-in";
-      // Clear features when zoomed out
-      const source = getSource();
-      if (source) source.setData({ type: "FeatureCollection", features: [] });
-      lastBoundsKey = "";
+      // Clear accumulated features when zoomed out
+      loadedFeatures.clear();
+      flushToSource();
       return;
     }
-
-    const b = mapRef.getBounds();
-    const boundsKey = `${b.getWest().toFixed(3)},${b.getSouth().toFixed(3)},${b.getEast().toFixed(3)},${b.getNorth().toFixed(3)},${Math.round(zoom)}`;
-    if (boundsKey === lastBoundsKey) return; // same viewport, skip
 
     // Cancel any in-flight request
     if (fetchController) fetchController.abort();
@@ -190,6 +198,7 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
     error.value = null;
 
     try {
+      const b = mapRef.getBounds();
       const bounds: [number, number, number, number] = [
         b.getWest(), b.getSouth(), b.getEast(), b.getNorth(),
       ];
@@ -199,9 +208,11 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
       // Check if aborted while awaiting
       if (fetchController.signal.aborted) return;
 
-      const source = getSource();
-      if (source) source.setData(fc);
-      lastBoundsKey = boundsKey;
+      // Append new features, deduplicating by ID
+      for (const f of fc.features) {
+        loadedFeatures.set(featureKey(f), f);
+      }
+      flushToSource();
       status.value = "ready";
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
@@ -240,7 +251,7 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
     error.value = null;
 
     // Add an empty source + layers immediately so the UI can toggle visibility
-    map.addSource(SOURCE_ID, {
+    map.addSource(sourceId, {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
       attribution: "CDC PLACES",
@@ -248,9 +259,9 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
 
     if (config.isPoint) {
       map.addLayer({
-        id: ASTHMA_LAYER_ID,
+        id: fillLayerId,
         type: "circle",
-        source: SOURCE_ID,
+        source: sourceId,
         paint: {
           "circle-color": [
             "interpolate", ["linear"],
@@ -266,9 +277,9 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
       });
     } else {
       map.addLayer({
-        id: ASTHMA_LAYER_ID,
+        id: fillLayerId,
         type: "fill",
-        source: SOURCE_ID,
+        source: sourceId,
         paint: {
           "fill-color": [
             "interpolate", ["linear"],
@@ -281,9 +292,9 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
       });
 
       map.addLayer({
-        id: ASTHMA_OUTLINE_LAYER_ID,
+        id: outlineId,
         type: "line",
-        source: SOURCE_ID,
+        source: sourceId,
         paint: {
           "line-color": "#333",
           "line-width": 0.5,
@@ -315,20 +326,20 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
       fetchController = null;
     }
     try {
-      if (map.getLayer(ASTHMA_OUTLINE_LAYER_ID)) {
-        map.removeLayer(ASTHMA_OUTLINE_LAYER_ID);
+      if (map.getLayer(outlineId)) {
+        map.removeLayer(outlineId);
       }
-      if (map.getLayer(ASTHMA_LAYER_ID)) {
-        map.removeLayer(ASTHMA_LAYER_ID);
+      if (map.getLayer(fillLayerId)) {
+        map.removeLayer(fillLayerId);
       }
-      if (map.getSource(SOURCE_ID)) {
-        map.removeSource(SOURCE_ID);
+      if (map.getSource(sourceId)) {
+        map.removeSource(sourceId);
       }
     } catch (err) {
       console.error("[places-asthma] Failed to remove layer", err);
     }
     mapRef = null;
-    lastBoundsKey = "";
+    loadedFeatures.clear();
     status.value = "idle";
   }
 
@@ -338,5 +349,6 @@ export function addAsthmaLayer(layerIndex: number = DEFAULT_LAYER_INDEX) {
     loading,
     error,
     status,
+    layerId: fillLayerId,
   };
 }

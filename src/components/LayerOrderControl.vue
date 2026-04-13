@@ -72,7 +72,7 @@
               </template>
             </local-scope>
             <colorbar-horizontal
-              v-if="element === 'places-asthma-layer'"
+              v-if="element === 'places-asthma-counties' || element === 'places-asthma-tracts'"
               v-show="visible"
               cmap-name="purples"
               :cmap="colormapFunction('purples')"
@@ -144,7 +144,8 @@ const _emit = defineEmits<Emits>();
   
 const connections: Record<string, string[]> = {
   'stamen-toner-lines': ['coastline-custom', 'states-custom', 'stamen-toner-lines'],
-  'places-asthma-layer': ['places-asthma-layer-outline'],
+  'places-asthma-counties': ['places-asthma-counties-outline'],
+  'places-asthma-tracts': ['places-asthma-tracts-outline'],
 };
 const getConnectedItems = (layer: string): string[] => {
   return connections[layer] ?? [];
@@ -184,7 +185,8 @@ const layerNames: Record<string, string | undefined> = {
   "hms-fire": "Fire Detections",
   'tempo-hcho': "TEMPO HCHO",
   'tempo-o3': "TEMPO Ozone",
-  "places-asthma-layer": "Asthma Prevalence",
+  "places-asthma-counties": "Asthma Prevalence (Counties)",
+  "places-asthma-tracts": "Asthma Prevalence (Tracts)",
 };
 
 const layerInfo: Record<string, string | undefined> = {
@@ -226,7 +228,13 @@ const layerInfo: Record<string, string | undefined> = {
                          The three major categories for generating electricity are fossil fuels, nuclear energy, and renewable energy sources.
                          <br/><br/>
                          Source: U.S. Energy Information Administration (EIA)</a>, provided by FEMA Geospatial Resource Center (<a href="https://gis-fema.hub.arcgis.com/datasets/b063316fac7345dba4bae96eaa813b2f/about" target="_blank" rel="noopener noreferrer">link</a>). Last accessed Oct. 16, 2025`,
-  "places-asthma-layer": `PLACES is a health data project from the CDC and its partners. It gives local estimates about health in communities across the United States, including counties, cities, neighborhoods, and ZIP Code areas.
+  "places-asthma-counties": `PLACES is a health data project from the CDC and its partners. It gives local estimates about health in communities across the United States, including counties, cities, neighborhoods, and ZIP Code areas.
+                          <br/><br/>
+                          For asthma, PLACES shows estimates of how many adults currently have asthma in each county. To make these estimates, it uses information from national health surveys and U.S. Census data.
+                          <br/><br/>
+                          This helps people compare asthma rates in different communities and better understand where asthma may be a bigger health concern.
+                          Source: CDC PLACES: Local Data for Better Health (<a href="https://www.cdc.gov/places/" target="_blank" rel="noopener noreferrer">link</a>)`,
+  "places-asthma-tracts": `PLACES is a health data project from the CDC and its partners. It gives local estimates about health in communities across the United States, including counties, cities, neighborhoods, and ZIP Code areas.
                           <br/><br/>
                           For asthma, PLACES shows estimates of how many adults currently have asthma in each census tract. To make these estimates, it uses information from national health surveys and U.S. Census data.
                           <br/><br/>
