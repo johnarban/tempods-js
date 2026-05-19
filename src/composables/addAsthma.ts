@@ -1,5 +1,5 @@
 import { ref, type Ref } from "vue";
-import type { Map, GeoJSONSource } from "maplibre-gl";
+import type { Map, GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
 import { sampleColormap } from "@/colormaps/utils";
 
 // ---------------------------------------------------------------------------
@@ -154,6 +154,7 @@ export function addAsthmaLayer(layerName: string, layerIndex: number = DEFAULT_L
 
   let mapRef: Map | null = null;
   let moveEndHandler: (() => void) | null = null;
+  let clickHandler: ((e: MapLayerMouseEvent) => void) | null = null;
   // Abort controller to cancel in-flight fetches when viewport changes
   let fetchController: AbortController | null = null;
   // Accumulated features for viewport-loaded layers (keyed by first idField to deduplicate)
@@ -314,12 +315,25 @@ export function addAsthmaLayer(layerName: string, layerIndex: number = DEFAULT_L
       // Small layers (points, counties): fetch everything once
       void loadAll();
     }
+
+    clickHandler = (e: MapLayerMouseEvent) => {
+      const feature = e.features?.[0];
+      if (feature) {
+        const point = { x: e.lngLat.lng, y: e.lngLat.lat };
+        console.log(`[${fillLayerId}] Value at point`, point, 'is', feature.properties?.[PREVALENCE_FIELD], feature.properties);
+      }
+    };
+    map.on("click", fillLayerId, clickHandler);
   }
 
   function removeFromMap(map: Map): void {
     if (moveEndHandler) {
       map.off("moveend", moveEndHandler);
       moveEndHandler = null;
+    }
+    if (clickHandler) {
+      map.off("click", fillLayerId, clickHandler);
+      clickHandler = null;
     }
     if (fetchController) {
       fetchController.abort();

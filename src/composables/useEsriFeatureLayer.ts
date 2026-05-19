@@ -1,4 +1,5 @@
 import { computed, onBeforeUnmount, ref, shallowRef, toRef, watch, type MaybeRef, type Ref } from "vue";
+import type { Map, MapLayerMouseEvent } from "maplibre-gl";
 
 export interface EsriFieldInfo {
   name: string;
@@ -45,6 +46,7 @@ export interface UseEsriFeatureLayerOptions {
   orderByFields?: MaybeRef<string | null | undefined>;
   extraParams?: MaybeRef<Record<string, string | number | boolean | null | undefined>>;
   autoFetch?: boolean;
+  popup?: boolean;
 }
 
 function trimTrailingSlashes(url: string): string {
@@ -185,6 +187,34 @@ export function useEsriFeatureLayer<TAttributes extends object = Record<string, 
 
   const refetch = () => queryFeatures();
 
+  let clickMap: Map | null = null;
+  let clickLayerId: string | null = null;
+  let clickHandler: ((e: MapLayerMouseEvent) => void) | null = null;
+
+  function setupMapClick(map: Map, mapLayerId: string): void {
+    if (!options.popup) return;
+    teardownMapClick();
+    clickMap = map;
+    clickLayerId = mapLayerId;
+    clickHandler = (e: MapLayerMouseEvent) => {
+      const feature = e.features?.[0];
+      if (feature) {
+        const point = { x: e.lngLat.lng, y: e.lngLat.lat };
+        console.log(`[${mapLayerId}] Value at point`, point, 'is', feature.properties);
+      }
+    };
+    map.on("click", mapLayerId, clickHandler);
+  }
+
+  function teardownMapClick(): void {
+    if (clickMap && clickLayerId && clickHandler) {
+      clickMap.off("click", clickLayerId, clickHandler);
+    }
+    clickMap = null;
+    clickLayerId = null;
+    clickHandler = null;
+  }
+
   if (autoFetch) {
     watch(
       [layerIdRef as Ref<number>, whereRef, outFieldsRef, returnGeometryRef, resultRecordCountRef, orderByFieldsRef, extraParamsRef],
@@ -201,6 +231,7 @@ export function useEsriFeatureLayer<TAttributes extends object = Record<string, 
 
   onBeforeUnmount(() => {
     abort();
+    teardownMapClick();
   });
 
   return {
@@ -217,5 +248,7 @@ export function useEsriFeatureLayer<TAttributes extends object = Record<string, 
     abort,
     getFieldValues,
     getFirstFieldValue,
+    setupMapClick,
+    teardownMapClick,
   };
 }
