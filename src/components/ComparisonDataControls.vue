@@ -10,6 +10,7 @@
     <div
       v-for="(map, index) in maps"
       :key="index"
+      class="mx-1"
     >
       <layer-order-control
         :mapRef="map"
