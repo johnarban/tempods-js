@@ -1,7 +1,9 @@
-import { ref, watch, computed, type WritableComputedRef, type Ref, onBeforeUnmount } from 'vue';
+import { ref, shallowRef,watch, computed, type WritableComputedRef, type Ref, onBeforeUnmount } from 'vue';
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
+import type { SymbolLayerSpecification, CircleLayerSpecification } from 'maplibre-gl';
 import { useKML } from './useKML';
+import { useGeoJsonLayer } from './useGeoJsonLayer';
 
 
 
@@ -21,6 +23,21 @@ export const replaceYearDay = (s: string | null): string | null => {
 };
 
 import { glccLabel } from '../utils/glcc';
+
+function circleRadiusExpression(meters: number, stops = [0, 5, 10, 15, 20]): M.DataDrivenPropertyValueSpecification<number> {
+  return [
+    "interpolate", ["linear"], ["zoom"],
+    ...stops.flatMap(z => [
+      z,
+      [
+        "/",
+        ["*", meters, Math.pow(2, z)],
+        ["*", 156543.03392, ["cos", ["/", ["*", Math.PI, ["get", "Lat"]], 180]]]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ] as any
+    ])
+  ];
+}
 
 export const replaceEcosystem = (s: string | null): string | null => {
   if (!s) return null;
@@ -127,7 +144,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   const showPopup = options.showPopup ?? true;
 
   // Store runtime state in refs (avoid caching on the function)
-  const mapRef = ref<M.Map | null>(null);
+  const mapRef = shallowRef<M.Map | null>(null);
   const idBase = options.layerName ? options.layerName : '';
   const sourceId = `${idBase}-source`;
   const layerId = idBase;
@@ -172,6 +189,9 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       
       const vis = val ? 'visible' : 'none';
       map.setLayoutProperty(layerId, 'visibility', vis);
+      if (map.getLayer(layerId + '-circle')) {
+        map.setLayoutProperty(layerId + '-circle', 'visibility', vis);
+      }
       if (map.getLayer(labelLayerId)) {
         map.setLayoutProperty(labelLayerId, 'visibility', vis);
       }
@@ -257,170 +277,125 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     map.on('styledata', syncLabelVisibility); 
     onStyleDataRef.value = syncLabelVisibility;
   }
+  
+  const processedData = computed<GeoJSON.FeatureCollection | null>(() => {
+    if (!geoJsonData.value) return null;
+    const processed = postProcessGeoJson(geoJsonData.value);
+    const yd = yearDay.value;
+    return {
+      ...processed,
+      features: processed.features.filter(f => f.properties && f.properties.YearDay > yd - 2)
+    };
+  });
 
-
-  const cleanupMapLayers = () => {
-    const map = mapRef.value;
-    if (map) {
-      if (map.getLayer(labelLayerId)) { 
-        map.removeLayer(labelLayerId);
-      }
-      
-      if (map.getLayer(layerId)) {
-        map.removeLayer(layerId);
-      }
-      if (map.getLayer(layerId+'-circle')) {
-        map.removeLayer(layerId+'-circle');
-      }
-      if (map.getSource(sourceId)) {
-        map.removeSource(sourceId);
-      }
-    }
+  const symbolLayer: Omit<SymbolLayerSpecification, 'source'> = {
+    id: layerId,
+    type: 'symbol',
+    paint: { 'icon-opacity': 1 },
+    layout: {
+      'icon-image': ['coalesce', ['get', 'styleUrl'], 'circle-15'],
+      'icon-size': [
+        "*", 
+        .025, 
+        ['abs',['log10', [
+          '*', 10,
+          ['number', ['get', 'FRP']]
+        ]
+        ]]
+      ],
+      'icon-allow-overlap': true,
+      'visibility': lastKnownVisible.value ? 'visible' : 'none'
+    },
+    filter: [
+      '>', ['get', 'FRP'], 1
+    ]
   };
 
-  // Add GeoJSON to map
-  const addToMap = async (map: M.Map): Promise<void> => {
-    // Always store map first so subsequent retries have a reference
-    mapRef.value = map;
-    
-    // Load KML if not already loaded
-    if (!geoJsonData.value) {
-      // console.log('HMS: No GeoJSON data, loading KML from URL:', kmlUrl.value);
-      await loadKML();
-    }
-    if (!geoJsonData.value) {
-      console.error('[hms-fire] No GeoJSON data available');
-      cleanupMapLayers();
-      return;
-    }
+  const hmsCircleLayer: Omit<CircleLayerSpecification, 'source'> = {
+    id: layerId+'-circle',
+    type: 'circle',
+    minzoom: 9,
+    // paint with a pale yellow to dark red scale based on FRP
+    layout: {
+      'visibility': lastKnownVisible.value ? 'visible' : 'none'
+    },
+    paint: {
+      // 375 meter radius using zoom, 'Lat', and 'Lon'
+      'circle-radius': circleRadiusExpression(375/2),
+      'circle-color': [
+        "interpolate", 
+        ["linear"], 
+        ["get", "FRP"],
+        0, "rgb(255, 255, 204)",       // pale yellow
+        1, "rgb(255, 237, 160)",
+        5, "rgb(254, 178, 76)",
+        10, "rgb(240, 59, 32)",
+        20, "rgb(189, 0, 38)",
+        50, "rgb(128, 0, 38)",           // dark red
+        1000, "rgb(77, 0, 75)"            // very dark red
+      ],
+      'circle-opacity': 0.5,
+      'circle-stroke-color': 'black',
+      // 'circle-stroke-width': 0.5,
+      // 'circle-stroke-opacity': 0.8
+    },
+    // filter for TimeDay 
+    // filter: ['>', ['get', 'YearDay'], yearDay.value-2],
+  };
 
-    // Remove existing layer and source if they exist
-    cleanupMapLayers();
-    
+  const geoLayer = useGeoJsonLayer(
+    idBase || 'hms-fire',
+    processedData,
+    {
+      layerOptions: [symbolLayer, hmsCircleLayer],
+      sourceSpec: {},
+      sourceId,
+    }
+  );
+
+  // Preload icons whenever data.
+  // layer and MapLibre picks them up automatically without re-adding anything.
+  watch(geoJsonData, (data) => {
+    const map = mapRef.value;
+    if (!data || !map) return;
     const images: Record<string, string> = {};
-    geoJsonData.value.features.forEach((feature) => {
+    data.features.forEach((feature) => {
       const props = feature.properties || {};
       const iconUrl: string = props.icon;
-      const styleUrl = props.styleUrl || iconUrl.split('/').pop(); 
-      if (iconUrl && typeof iconUrl === 'string' && !(iconUrl in images)) {
+      const styleUrl = props.styleUrl || iconUrl.split('/').pop();
+      if (iconUrl && typeof iconUrl === 'string' && styleUrl && !(styleUrl in images)) {
         images[styleUrl] = iconUrl;
       }
     });
     // Preload all icons
-    preloadImages(map, images)
-      .then(() => {
-        if (!geoJsonData.value) {
-          throw new Error('No GeoJSON data available after image preload');
-        }
-        // Add new source and layer
-        map.addSource(sourceId, {
-          type: 'geojson',
-          data: postProcessGeoJson(geoJsonData.value)
-        });
+    preloadImages(map, images).catch(err => console.error('HMS: Error preloading images:', err));
+  });
 
-        // Add point layer colored by 'marker-color'
-        map.addLayer({
-          id: layerId,
-          type: 'symbol',
-          source: sourceId,
-          paint: {
-            'icon-opacity': 1,
-          },
-          layout: {
-            'icon-image': ['coalesce', ['get', 'styleUrl'], 'circle-15'],
-            'icon-size': [
-              "*", 
-              .025, 
-              ['abs',['log10', [
-                '*', 10,
-                ['number', ['get', 'FRP']]
-              ]
-              ]]
-            ],
-            'icon-allow-overlap': true,
-            'visibility': lastKnownVisible.value ? 'visible' : 'none'
-          },
-          filter: [
-            'all',
-            ['>', ['get', 'FRP'], 1],
-            ['>', ['get', 'YearDay'], yearDay.value - 1]
-          ]
-        });
-        
-        
-        
-        
-        function circleRadiusExpression(meters: number, stops = [0, 5, 10, 15, 20]): M.DataDrivenPropertyValueSpecification<number> {
-          return [
-            "interpolate", ["linear"], ["zoom"],
-            ...stops.flatMap(z => [
-              z,
-              [
-                "/",
-                ["*", meters, Math.pow(2, z)],
-                ["*", 156543.03392, ["cos", ["/", ["*", Math.PI, ["get", "Lat"]], 180]]]
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ] as any
-            ])
-          ];
-        }
-        
-        
-        
-        map.addLayer({
-          id: layerId+'-circle',
-          type: 'circle',
-          source: sourceId,
-          minzoom: 9,
-          // paint with a pale yellow to dark red scale based on FRP
-          layout: {
-            'visibility': lastKnownVisible.value ? 'visible' : 'none'
-          },
-          paint: {
-            // 375 meter radius using zoom, 'Lat', and 'Lon'
-            'circle-radius': circleRadiusExpression(375/2),
-            'circle-color': [
-              "interpolate",
-              ["linear"],
-              ["get", "FRP"],
-              0, "rgb(255, 255, 204)",       // pale yellow
-              1, "rgb(255, 237, 160)",
-              5, "rgb(254, 178, 76)",
-              10, "rgb(240, 59, 32)",
-              20, "rgb(189, 0, 38)",
-              50, "rgb(128, 0, 38)",           // dark red
-              1000, "rgb(77, 0, 75)"            // very dark red
-            ],
-            'circle-opacity': 0.5,
-            'circle-stroke-color': 'black',
-            // 'circle-stroke-width': 0.5,
-            // 'circle-stroke-opacity': 0.8
-          },
-          // filter for TimeDay 
-          filter: ['>', ['get', 'YearDay'], yearDay.value-2],
-        });
+  // Add GeoJSON to map
+  const addToMap = async (map: M.Map): Promise<void> => {
+    mapRef.value = map;
 
-        // Optionally add labels
-        
+    // Mount source + layers immediately; data populates reactively once KML loads.
+    geoLayer.addToMap(map);
 
-        
-        // Add popup/handlers if it hasn't been added yet
-        if (showPopup && popupRef.value === null) {
-          setupLayerPopup(map, layerId);
-        }
-        
-        // Even without labels still sync visibility (for external toggles)
-        if (onStyleDataRef.value === null) {
-          setupVisibilitySync(map);
-        }
-        
-      })
-      .catch((err) => {
-        console.error('HMS: Error adding KML layer to map:', err);
-        throw err;
-      });
-        
-    
+    const vis = lastKnownVisible.value ? 'visible' : 'none';
+    if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', vis);
+    if (map.getLayer(layerId + '-circle')) map.setLayoutProperty(layerId + '-circle', 'visibility', vis);
+
+    if (!geoJsonData.value) {
+      await loadKML();
+    }
+    if (!geoJsonData.value) {
+      console.error('[hms-fire] No GeoJSON data available');
+      return;
+    }
+
+    if (showPopup && popupRef.value === null) {
+      setupLayerPopup(map, layerId);
+    }
+    if (onStyleDataRef.value === null) {
+      setupVisibilitySync(map);
+    }
   };
   
   
@@ -437,16 +412,9 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
 
   // Change URL and refresh layer
   const setUrl = async (newUrl: string): Promise<void> => {
-    // console.log('HMS: Setting new KML URL:', newUrl);
-    cleanupMapLayers();
-    internalSetUrl(newUrl) // will automatically load new and abort prior
-      .then(() => {
-        const map = mapRef.value;
-
-        if (map) {
-          addToMap(map as never);
-        }
-      }).catch((err) => {
+    internalSetUrl(newUrl)
+      .then(() => loadKML())
+      .catch((err) => {
         console.error('HMS: Error setting new KML URL:', err);
       });
   };
@@ -454,17 +422,16 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   // Remove from map
   const removeFromMap = (map: M.Map): void => {
     cleanUp();
-    
+
     // Remove hover handlers and popup
     if (onEnterRef.value) map.off('click', layerId, onEnterRef.value);
     if (onMoveRef.value) map.off('mousemove', layerId, onMoveRef.value);
     if (onLeaveRef.value) map.off('mouseleave', layerId, onLeaveRef.value);
     if (popupRef.value) popupRef.value.remove();
     if (onStyleDataRef.value) map.off('styledata', onStyleDataRef.value);
-    // if (onStyleDataRef.value) map.off('idle', onStyleDataRef.value); 
 
-    // Remove layers and source
-    cleanupMapLayers();
+    // Remove layers and source (keeps layer config so a later addToMap re-adds them)
+    geoLayer.cleanup();
 
     // Clear stored handlers/popup; keep mapRef so we can re-add later
     popupRef.value = null;

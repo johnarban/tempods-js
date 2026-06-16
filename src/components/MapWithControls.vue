@@ -198,7 +198,7 @@ import { addPowerPlants } from "@/composables/addPowerPlants";
 import { addHMSFire } from "@/composables/addHMSFire";
 
 const pp = addPowerPlants(map as Ref<Map | null> | null, false);
-import { addQUI } from '@/composables/addAQI';
+import { addAQI } from '@/composables/addAQI';
 
 // base it of singleDateSelected
 const airQualityUrl = computed(() => {
@@ -212,7 +212,7 @@ const airQualityUrl = computed(() => {
   const day = date.getUTCDate().toString().padStart(2, '0');
   return `https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/${year}/${year}${month}${day}/KMLPointMaps_PM2.5-24hr.kml`;
 });
-const aqiLayer = addQUI(airQualityUrl.value, { 
+const aqiLayer = addAQI(airQualityUrl.value, { 
   propertyToShow: 'aqi', 
   labelMinZoom: 5, 
   layerName: 'aqi', 
@@ -255,7 +255,7 @@ const hmsFire = addHMSFire(singleDateSelected, {
   layerName: 'hms-fire',
   visible: false,
   showPopup: true,
-  showLabel: false,
+  showLabel: true,
 });
 
 import { type UseEsriTempoLayer, useTempoLayer } from "@/esri/maplibre/useTempoImageLayer";
