@@ -2,8 +2,8 @@ import { ref, computed, type WritableComputedRef, type Ref, onBeforeUnmount } fr
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
 import type { CircleLayerSpecification, SymbolLayerSpecification } from 'maplibre-gl';
-import { useKML } from './useKML';
-import { useGeoJsonLayer } from './useGeoJsonLayer';
+import { useKML } from '@/composables/useKML';
+import { useGeoJsonLayer } from '@/composables/useGeoJsonLayer';
 
 // AQI styleUrl -> color mapping (hex), derived from the
 // legend here https://gispub.epa.gov/airnow/?tab=archive

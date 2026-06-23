@@ -81,7 +81,7 @@ import {
   TraditionalSources,
 } from "@/assets/power_plants";
 
-import { POWER_PLANT_COLORS } from "@/composables/addPowerPlants";
+import { POWER_PLANT_COLORS } from "@/datasets/addPowerPlants";
 
 import { setLayerVisibility } from "@/maplibre_controls";
 

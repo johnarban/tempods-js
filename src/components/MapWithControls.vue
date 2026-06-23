@@ -194,11 +194,11 @@ type UnifiedRegionType = typeof regions.value[number];
 
 const display = useDisplay();
 
-import { addPowerPlants } from "@/composables/addPowerPlants";
-import { addHMSFire } from "@/composables/addHMSFire";
+import { addPowerPlants } from "@/datasets/addPowerPlants";
+import { addHMSFire } from "@/datasets/addHMSFire";
 
 const pp = addPowerPlants(map as Ref<Map | null> | null, false);
-import { addAQI } from '@/composables/addAQI';
+import { addAQI } from '@/datasets/addAQI';
 
 // base it of singleDateSelected
 const airQualityUrl = computed(() => {
@@ -227,13 +227,13 @@ watch(airQualityUrl, (newUrl) => {
 });
 
 
-import { addPopulationDensityLayer } from '@/composables/addPopulationDensity';
+import { addPopulationDensityLayer } from '@/datasets/addPopulationDensity';
 const popLayer = addPopulationDensityLayer();
 
-import { addLandUseLayer } from "@/composables/addLandUse";
+import { addLandUseLayer } from "@/datasets/addLandUse";
 const sentinalLandUseLayer = addLandUseLayer();
 
-import { addAsthmaLayer } from "@/composables/addAsthma";
+import { addAsthmaLayer } from "@/datasets/addAsthma";
 const asthmaCounties = addAsthmaLayer('places-asthma-counties', 2);
 const asthmaTracts = addAsthmaLayer('places-asthma-tracts', 3);
 

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/naming-convention */
 import { useEsriImageServiceLayer } from "@/composables/useEsriMapLayer";
-import { layer } from "@fortawesome/fontawesome-svg-core";
 
 
 // https://www.arcgis.com/home/item.html?id=cfcb7609de5f478eb7666240902d4d3d

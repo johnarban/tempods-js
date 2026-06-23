@@ -1,5 +1,5 @@
 import { ref, type Ref, onBeforeUnmount } from 'vue';
-import toGeoJSON from '../togeojson.js';
+import toGeoJSON from '../kmltogeojson.js';
 import { useAbortableFetch } from './useAbortableFetch';
 
 

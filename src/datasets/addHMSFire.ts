@@ -2,8 +2,8 @@ import { ref, shallowRef,watch, computed, type WritableComputedRef, type Ref, on
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
 import type { SymbolLayerSpecification, CircleLayerSpecification } from 'maplibre-gl';
-import { useKML } from './useKML';
-import { useGeoJsonLayer } from './useGeoJsonLayer';
+import { useKML } from '@/composables/useKML';
+import { useGeoJsonLayer } from '@/composables/useGeoJsonLayer';
 
 
 
