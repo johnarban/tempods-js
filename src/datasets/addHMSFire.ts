@@ -396,7 +396,12 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     if (onStyleDataRef.value === null) {
       setupVisibilitySync(map);
     }
+    
+    // syncLayerOpacity(map, layerId, layerId+'-circle');
+    // syncLayerVisibility(map, layerId, layerId+'-circle');
+    
   };
+  
   
   
   // Optional: debug logging

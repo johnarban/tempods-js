@@ -4,6 +4,7 @@ import { Popup } from 'maplibre-gl';
 import type { CircleLayerSpecification, SymbolLayerSpecification } from 'maplibre-gl';
 import { useKML } from '@/composables/useKML';
 import { useGeoJsonLayer } from '@/composables/useGeoJsonLayer';
+import { syncLayerOpacity } from "@/composables/useSyncedVisibilityAndOpacity";
 
 // AQI styleUrl -> color mapping (hex), derived from the
 // legend here https://gispub.epa.gov/airnow/?tab=archive
@@ -267,6 +268,10 @@ export function addAQI(url: string, options: UseKMLOptions = {}): AQILayer {
     onLeaveRef.value = onLeave;
   }
 
+  /**
+   * setupVisibilitySync is just making sure layerId and labelLayerId have the same visibility
+   * without connecting them externally using the `connections` on the LayerOrderControl
+   */
   function setupVisibilitySync(map: M.Map) {
     // Keep label visibility equal to main layer & sync external visibility changes
     const syncLabelVisibility = () => {
@@ -287,7 +292,7 @@ export function addAQI(url: string, options: UseKMLOptions = {}): AQILayer {
     syncLabelVisibility();
     // idle takes a bit longer than styledata, and the user can tell
     // but idle would be less frequent i think
-    map.on('styledata', syncLabelVisibility); 
+    map.on('styledata', syncLabelVisibility);
     onStyleDataRef.value = syncLabelVisibility;
   }
 
@@ -325,7 +330,10 @@ export function addAQI(url: string, options: UseKMLOptions = {}): AQILayer {
       setupVisibilitySync(map);
 
     }
-
+    
+    // keep the layer and it's label the same opacity
+    syncLayerOpacity(map, layerId, labelLayerId);
+    
     // Apply last known visibility after layers are added
     // const vis = lastKnownVisible.value ? 'visible' : 'none';
     // map.setLayoutProperty(layerId, 'visibility', vis);
