@@ -146,9 +146,9 @@ const longitude = defineModel<number>('longitude', { default: 0 });
 const zoom = defineModel<number>('zoom', { default: 0 });
 
 // add a watcher to console log the lat/long/zoom changes
-watch([latitude, longitude, zoom], ([newLat, newLng, newZoom]) => {
-  console.log(`Map view changed: lat=${newLat}, lng=${newLng}, zoom=${newZoom}`);
-});
+// watch([latitude, longitude, zoom], ([newLat, newLng, newZoom]) => {
+//   console.log(`Map view changed: lat=${newLat}, lng=${newLng}, zoom=${newZoom}`);
+// });
 
 // Internal readiness tracking: single concept (base map ready)
 const mapReady = ref(false);              // Underlying Maplibre map style loaded
