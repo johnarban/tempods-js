@@ -144,8 +144,6 @@ const _emit = defineEmits<Emits>();
   
 const connections: Record<string, string[]> = {
   'stamen-toner-lines': ['coastline-custom', 'states-custom', 'stamen-toner-lines'],
-  'places-asthma-counties': ['places-asthma-counties-outline'],
-  'places-asthma-tracts': ['places-asthma-tracts-outline'],
   'aqi-layer-aqi': ['aqi-layer-aqi','aqi-layer-aqi-label'], // colored dot on bottom, label on top
 };
 const getConnectedItems = (layer: string): string[] => {
@@ -170,7 +168,7 @@ const displayOrder = computed({
     return currentOrder.value.slice().reverse();
   },
   set(value: string[]) {
-    controller.value?.setManagedOrder(value.slice().reverse());
+    controller?.setManagedOrder(value.slice().reverse());
   }
 });
 
