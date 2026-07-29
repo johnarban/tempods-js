@@ -648,7 +648,7 @@ function addLayer(
   const layerInfo = isRect ?
     addRectangleLayer((map.value)!, info as RectangleSelectionInfo, color, regionOpacity.value, regionVisibility.value) :
     addPointLayer((map.value)!, info as PointSelectionInfo, color, regionVisibility.value);
-  map.value?.moveLayer(layerInfo.layer.id);
+  layerInfo.layerIds.forEach(id => map.value?.moveLayer(id));
   return layerInfo;
 }
 

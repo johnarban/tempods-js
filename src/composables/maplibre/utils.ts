@@ -1,6 +1,8 @@
 import { GeoJSONSource, LngLatBoundsLike, Map } from "maplibre-gl";
 import { v4 } from "uuid";
 
+import { syncLayerVisibilityAndOpacity } from "@/composables/useSyncedVisibilityAndOpacity";
+
 import { RectangleSelectionInfo, PointSelectionInfo, UnifiedRegion } from "../../types";
 
 const layerGetter = (m: Map, id: string) => m.getLayer(id);
@@ -16,6 +18,9 @@ function createBounds(info: RectangleSelectionInfo) {
   ];
 }
 
+function outlineLayerId(layerId: string): string {
+  return `${layerId}-outline`;
+}
 
 export function addRectangleLayer(
   map: Map,
@@ -23,6 +28,8 @@ export function addRectangleLayer(
   color: string,
   opacity=0.7,
   visible=true,
+  outlineColor="#000000",
+  outlineWidth=1.5,
 ) {
 
   const uuid = v4();
@@ -59,7 +66,23 @@ export function addRectangleLayer(
     }
   });
 
-  return { layer: source };
+  const outlineId = outlineLayerId(uuid);
+  map.addLayer({
+    id: outlineId,
+    type: "line",
+    source: uuid,
+    paint: {
+      "line-color": outlineColor,
+      "line-width": outlineWidth,
+      "line-opacity": opacity,
+    },
+    layout: {
+      visibility: visible ? "visible" : "none",
+    }
+  });
+  syncLayerVisibilityAndOpacity(map, uuid, outlineId);
+
+  return { layer: source, layerIds: [uuid, outlineId] };
 }
 
 export function updateRectangleBounds(
@@ -84,6 +107,10 @@ export function removeRectangleLayer(
   map: Map,
   layer: LayerType,
 ) {
+  const outlineId = outlineLayerId(layer.id);
+  if (map.getLayer(outlineId)) {
+    map.removeLayer(outlineId);
+  }
   map.removeLayer(layer.id);
   map.removeSource(layer.id);
 }
@@ -129,7 +156,7 @@ export function addPointLayer(
     }
   });
 
-  return { layer: source };
+  return { layer: source, layerIds: [uuid] }; // add layerIds for compatability wtih rectangle
 }
 
 export function updatePointLocation(
