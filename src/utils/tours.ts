@@ -339,6 +339,8 @@ export function getIntroTour(store: TempoStore): Tour {
     text: "My Regions",
     extraHighlights: ['.tempo-map'], // make the map interactive too.
     allowNext: computed(() => regionsCreatedCount.value > 0),
+    // i don't think we want to actually skip it, but  this is how you would do it
+    // showOn: () => regionsCreatedCount.value === 0, 
   }));
   const myTimeRanges = () => document.querySelector("#dc-my-time-ranges") as HTMLElement;
   addStep(tour, ({
