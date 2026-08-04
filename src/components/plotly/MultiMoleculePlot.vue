@@ -49,7 +49,7 @@ const commonLayoutOptions: Partial<Layout> = deepMerge(
       automargin: false,
       gridcolor: 'rgba(128, 128, 128, 0.3)',
       title: {
-        standoff: 10,
+        standoff: 22,
       },
     },
     yaxis: {
