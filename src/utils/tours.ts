@@ -1,4 +1,4 @@
-import { watch, type Ref } from "vue";
+import { watch, computed, type Ref } from "vue";
 import { useShepherd } from "vue-shepherd";
 import type { Step, StepOptionsButton, Tour, StepOptions } from "shepherd.js";
 
@@ -233,7 +233,7 @@ export function addStep(tour: Tour, options: CosmicDSStepOptions) {
 
 export function getIntroTour(store: TempoStore): Tour {
 
-  const { datasetControlsOpen, layerControlsOpen } = storeToRefs(store);
+  const { datasetControlsOpen, layerControlsOpen, regionsCreatedCount } = storeToRefs(store);
 
   function defaultStepShow(step: Step) {
     if (!step) { return; } // need to check because we use ! type assertion
@@ -331,6 +331,29 @@ export function getIntroTour(store: TempoStore): Tour {
     },
   }));
 
+  
+  const myRegions = () => document.querySelector("#dc-my-regions") as HTMLElement;
+  addStep(tour, ({
+    title: "My Regions",
+    attachTo: { element: myRegions, on: "top" },
+    text: "My Regions",
+    extraHighlights: ['.tempo-map'], // make the map interactive too.
+    allowNext: computed(() => regionsCreatedCount.value > 0),
+  }));
+  const myTimeRanges = () => document.querySelector("#dc-my-time-ranges") as HTMLElement;
+  addStep(tour, ({
+    title: "My Time Ranges",
+    attachTo: { element: myTimeRanges, on: "left" },
+    text: "My Time Ranges",
+  }));
+  const myDatasets = () => document.querySelector("#dc-my-datasets") as HTMLElement;
+  addStep(tour, ({
+    title: "My Datasets",
+    attachTo: { element: myDatasets, on: "left" },
+    text: "My Datasets",
+  }));
+
+
   const openCloseDatasets = datasetsPanel.querySelector(".open-close-container") as HTMLElement;
   addStep(tour, ({
     title: "Collapse & Expand",
@@ -344,7 +367,7 @@ export function getIntroTour(store: TempoStore): Tour {
       },
     },
   }));
-
+  
   tour.on("cancel", () => {
     store.showTourHint = true;
   });
@@ -354,7 +377,6 @@ export function getIntroTour(store: TempoStore): Tour {
   });
   
   tour.on("show", (event: { step: Step }) => {
-    console.log("Tour show event:", event);
     const newStep = event.step;
     if (!newStep) { return; }
     const newIndex = tour.steps.indexOf(newStep);

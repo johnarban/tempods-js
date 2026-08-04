@@ -41,6 +41,7 @@
         multiple
       > 
         <v-expansion-panel
+          id="dc-my-regions"
           title="Regions"
           class="mt-3 h3-panel-titles"
         >
@@ -170,6 +171,7 @@
         </v-divider>
         
         <v-expansion-panel
+          id="dc-my-time-ranges"
           title="My Time Ranges"
           class="mt-3 h3-panel-titles"
         >
@@ -257,6 +259,7 @@
         </v-divider>
 
         <v-expansion-panel
+          id="dc-my-datasets"
           title="My Datasets"
           class="mt-3 h3-panel-titles"
         >

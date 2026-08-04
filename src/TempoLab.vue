@@ -676,6 +676,10 @@ body .shepherd-button {
   color: #1a1a2e;
 }
 
+.shepherd-button.shepherd-button-next[disabled] {
+  opacity: 0.5;
+}
+
 .shepherd-button.shepherd-button-next:not(:disabled):hover {
   filter: brightness(1.1);
   background: var(--smithsonian-yellow);
