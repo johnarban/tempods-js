@@ -19,7 +19,7 @@
           }"
         >
         Give me a quick tour
-        <template #append>
+        <template #prepend>
           <font-awesome-icon
               icon="fa-signs-post"
               size="lg"
@@ -32,7 +32,7 @@
           @click="() => emit('close')"
         >
         I want to dive right in!
-        <template #append>
+        <template #prepend>
           <font-awesome-icon
               icon="fa-circle-xmark"
               size="lg"
