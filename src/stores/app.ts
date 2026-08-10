@@ -7,7 +7,7 @@ import { parse, stringify } from "zipson";
 
 import type { AggValue, InitMapOptions, LatLngPair, LayerReadiness, LayerStatus, MappingBackends, SelectionType, TimeRange, UnifiedRegion, UserDataset } from "@/types";
 import { moleculeServiceConfigs, MoleculeType } from "@/esri/utils";
-import { TempoDataService, FetchOptions } from "@/esri/services/TempoDataService";
+import { TempoDataService, FetchOptions, summaryError } from "@/esri/services/TempoDataService";
 import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
 import { useTimezone, type Timezone } from "@/composables/useTimezone";
 import { atleast1d } from "@/utils/atleast1d";
@@ -328,8 +328,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     dataset.loading = true;
 
     // loadingSamples.value = sel.id;
-    // sampleErrors.value[sel.id] = null;
-    
+    sampleErrors.value[dataset.id] = null;
+
     const timeRanges = atleast1d(dataset.timeRange.range);
     
     try {
@@ -340,6 +340,10 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
       const data = await tds.fetchTimeseriesData(dataset.region.geometryInfo, timeRanges, {onProgress});
       dataset.samples = data.values;
       dataset.errors = data.errors;
+      dataset.summary = data.summary;
+      // fetchSamples catches per-range failures, so we only get the summary. 
+      // something to fix for the future perhaps
+      sampleErrors.value[dataset.id] = summaryError(data.summary);
       // loadingSamples.value = "finished";
       console.log(`Fetched data for ${timeRanges.length} time range(s)`);
     } catch (error) {
@@ -369,6 +373,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
       if (data) {
         dataset.samples = data.values;
         dataset.locations = data.locations;
+        dataset.summary = data.summary;
+        sampleErrors.value[dataset.id] = summaryError(data.summary);
         console.log(`Fetched center point data for ${timeRanges.length} time range(s)`);
       }
     } catch (error) {
@@ -463,6 +469,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     addDataset,
     fetchDataForDataset,
     fetchCenterPointDataForDataset,
+    sampleErrors,
     markDatasetUpdated,
     datasetHasSamples,
     regionHasDatasets,

@@ -7,13 +7,13 @@
   >
   <template #action-row="{ dataset }">
         <div
-          v-if="(dataset.loading || !dataset.samples)  && !(dataset.timeRange?.type === 'folded' && dataset.plotlyDatasets)"
+          v-if="(dataset.loading || datasetFailed(dataset))  && !(dataset.timeRange?.type === 'folded' && dataset.plotlyDatasets)"
           class="dataset-loading"
         >
           <hr/>
           <v-progress-linear
-            :class="['dataset-loading-progress', !(dataset.loading && dataset.samples) ? 'dataset-loading-failed' : '']"
-            :active="dataset.loading || !dataset.samples"
+            :class="['dataset-loading-progress', datasetFailed(dataset) ? 'dataset-loading-failed' : '']"
+            :active="dataset.loading || datasetFailed(dataset)"
             :color="dataset.loading ? 'primary' : 'red'"
             :indeterminate="dataset.loading"
             :value="!dataset.loading ? 100 : 0"
@@ -24,12 +24,13 @@
           >
             <template #default>
               <span class="text-subtitle-2">
-                {{ dataset.loading ? 'Data Loading' : (!dataset.samples ? 'Error Loading Data' : '') }}
+                {{ dataset.loading ? 'Data Loading' : (datasetFailed(dataset) ? 'Error Loading Data' : '') }}
               </span>
             </template>
           </v-progress-linear>
 
           <v-tooltip
+            v-if="datasetFailed(dataset)"
             text="Remove selection"
             location="top"
           >
@@ -44,8 +45,7 @@
             </template>
           </v-tooltip>
 
-          <div v-if="!(dataset.loading || dataset.samples || dataset.plotlyDatasets)">
-            <hr/>
+          <div v-if="!dataset.loading && datasetFailed(dataset) && !dataset.plotlyDatasets">
             <v-tooltip
               text="Failure info"
               location="top"
@@ -53,24 +53,11 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  size="x-small"
-                  icon="mdi-help-circle"
-                  variant="plain"
+                  size="small"
+                  icon="mdi-alert"
+                  color="red"
+                  variant="text"
                   @click.stop="() => sampleErrorId = dataset.id"
-                ></v-btn>
-              </template>
-            </v-tooltip>
-            <v-tooltip
-              text="Remove selection"
-              location="top"
-            >
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  size="x-small"
-                  icon="mdi-trash-can"
-                  variant="plain"
-                  @click.stop="() => emit('remove-dataset', dataset)"
                 ></v-btn>
               </template>
             </v-tooltip>
@@ -79,6 +66,7 @@
 
         <v-expand-transition>
           <div
+            v-if="!datasetFailed(dataset)"
             class="selection-icons"
             v-show="(dataset.samples || dataset.plotlyDatasets) && (touchscreen ? openSelection == dataset.id : true)"
           >
@@ -160,6 +148,37 @@
               </template>
             </v-tooltip>
           </div>
+          <div v-else class="selection-icons">
+            <v-spacer></v-spacer>
+            <v-tooltip
+              text="Try loading this data again"
+              location="top"
+            >
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon="mdi-refresh"
+                  variant="plain"
+                  density="compact"
+                  @click.stop="() => emit('retry-dataset', dataset)"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+            <v-tooltip
+              text="Remove selection"
+              location="top"
+            >
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon="mdi-trash-can"
+                  variant="plain"
+                  density="compact"
+                  @click.stop="() => emit('remove-dataset', dataset)"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+          </div>
         </v-expand-transition>
 
         <cds-dialog
@@ -206,6 +225,7 @@ import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 import type { UserDataset, MoleculeType, UnifiedRegion } from "../types";
 import { moleculeDescriptor } from "../esri/utils";
 import { titleBarPredicate } from "../utils/draggable";
+import { useTempoStore } from "../stores/app";
 
 import DatasetCard from "./DatasetCard.vue";
 import UserDatasetPlot from "./plotly/UserDatasetPlot.vue";
@@ -225,6 +245,7 @@ withDefaults(defineProps<DatasetCardControlProps>(), {
 const emit = defineEmits<{
   (event: "edit-dataset", dataset: UserDataset): void;
   (event: "remove-dataset", dataset: UserDataset): void;
+  (event: "retry-dataset", dataset: UserDataset): void;
   (event: "aggregate-dataset", dataset: UserDataset): void;
   (event: "plot-click", value: {x: number | string | Date | null, y: number, customdata: unknown, molecule: MoleculeType, region: UnifiedRegion}): void;
 }>();
@@ -239,6 +260,14 @@ const openSelection = defineModel<string | null>("openSelection", { default: nul
 const tableSelection = defineModel<UserDataset | null>("tableSelection", { default: null });
 
 const touchscreen = supportsTouchscreen();
+
+const store = useTempoStore();
+
+/** a dataset that came back empty is only a failure if the fetch actually reported errors */
+function datasetFailed(dataset: UserDataset): boolean {
+  console.log("datasetFailed", dataset.id, store.sampleErrors[dataset.id], dataset.summary);
+  return !!store.sampleErrors[dataset.id];
+}
 
 /** per-dataset graph dialog state, keyed by dataset id */
 const openGraphs = ref<Record<string, boolean>>({});

@@ -258,6 +258,7 @@
               v-model:table-selection="tableSelection"
               @edit-dataset="handleEditDataset"
               @remove-dataset="removeDataset"
+              @retry-dataset="retryDataset"
               @aggregate-dataset="openAggregationDialog"
               @plot-click="handlePlotClick"
             />
@@ -359,9 +360,10 @@
           </v-btn>
         </v-toolbar>
         <v-card-text>
-          There was an error loading data for this selection. Either there is no data for the
-          region/time range/molecule combination that you selected, or there was an error loading
-          data from the server. You can delete this selection and try making a new one.
+          <p v-if="sampleErrorMessage" class="mb-3 font-weight-medium">{{ sampleErrorMessage }}</p>
+          The data server did not respond to some or all of the requests for this selection. This is
+          usually temporary. You can delete this selection <v-icon icon="mdi-trash-can" /> and try making a new one, or try again by 
+          clicking the retry button <v-icon icon="mdi-refresh" />.
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -536,6 +538,7 @@ const showMultiPlot = ref(false);
 const createTimeRangeActive = ref(false);
 const createDatasetActive = ref(false);
 const sampleErrorID = ref<string | null>(null);
+const sampleErrorMessage = computed(() => sampleErrorID.value ? store.sampleErrors[sampleErrorID.value] : null);
 
 const showEditRegionNameDialog = ref(false);
 const regionBeingEdited = shallowRef<UnifiedRegionType | null>(null);
@@ -575,13 +578,20 @@ function handleAggregationSaved(aggregatedSelection: UserDataset) {
 }
 
 import { RequestStats, FetchOptions } from "@/esri/services/TempoDataService";
+function progressLogger(dataset: UserDataset): FetchOptions["onProgress"] {
+  return (stats: RequestStats, completed: number, total: number) => {
+    console.log(`Dataset ${dataset.name} loading progress: ${completed}/${total} requests completed.`, stats);
+  };
+}
+
 function handleDatasetCreated(dataset: UserDataset) {
   dataset.name = `Dataset ${datasets.value.length + 1}`; // give it a default name
-  const onProgress: FetchOptions["onProgress"] = (_stats: RequestStats, completed: number, total: number) => {
-    console.log(`Dataset ${dataset.name} loading progress: ${completed}/${total} requests completed.`, _stats);
-  };
-  store.addDataset(dataset, true, onProgress);
+  store.addDataset(dataset, true, progressLogger(dataset));
   createDatasetActive.value = false;
+}
+
+function retryDataset(dataset: UserDataset) {
+  store.fetchDataForDataset(dataset, progressLogger(dataset));
 }
 
 import UserDatasetEditor from "./UserDatasetEditor.vue";
