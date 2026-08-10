@@ -408,6 +408,8 @@ body {
   flex-direction: row;
   padding-left: 10px;
   gap: 5px;
+  overflow-y: scroll;
+  height: 100%;
 }
 
 #layers-panel, #datasets-panel {

@@ -1,6 +1,6 @@
 <template>
   <div class="map-container">
-    <v-card class="map-contents" style="width:100%; height: 100%;">
+    <v-card class="map-contents">
       <v-toolbar
         density="compact"
         color="var(--info-background)"
@@ -55,6 +55,23 @@
         ></location-search>
       </div>
     </v-card>
+    
+    <v-tooltip
+        text="Change map height"
+        location="start center"
+        :disabled="dragging"
+      >
+        <template #activator="{ props }">
+          <div
+            v-bind="props"
+            class="handle vertical-handle"
+            ref="middle-handle"
+            aria-label="Resize map"
+            role="separator"
+          ></div>
+        </template>
+      </v-tooltip>
+    
     <div class="slider-row mx-16 mt-12">
       <v-slider
         class="time-slider"
@@ -823,6 +840,123 @@ watch(focusRegion, region => {
   }
 });
 
+const dragging = ref(false);
+
+type EventHandler = (event: PointerEvent) => void;
+
+interface HandleSetupParams {
+  handle: HTMLElement;
+  onMove: EventHandler;
+  initialEventHandler?: (event: PointerEvent) => void;
+}
+
+function setupHandleEvents(params: HandleSetupParams) {
+  
+  const { handle, onMove } = params;
+
+  handle.addEventListener("pointerdown", (event: PointerEvent) => {
+
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+
+    document.body.classList.add("panel-size-dragging");
+
+    dragging.value = true;
+
+    if (params.initialEventHandler) {
+      params.initialEventHandler(event); 
+    }
+
+    const onUp = (ev: PointerEvent) => {
+      try {
+        handle.releasePointerCapture(ev.pointerId); 
+      } catch (error) {
+        console.error(error);
+      }
+      document.body.classList.remove("panel-size-dragging");
+      dragging.value = false;
+
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+
+  });
+}
+
+import { onMounted } from "vue";
+let animationFrame = 0;
+
+
+
+function setBasis(panel: HTMLElement, sizePx: number) {
+  panel.style.flexBasis = `${sizePx}px`;
+  // panel.style.setProperty("--panel-height", `${sizePx}px`); // Ensure the basis is set in pixels
+
+}
+
+function getBasis(panel: HTMLElement): number {
+  const basis = parseFloat(getComputedStyle(panel).flexBasis);
+  return isNaN(basis) ? 0 : basis;
+}
+
+function updateSizes(panelDefault: boolean = false, datasetsDefault: boolean = false) {
+  // const rootElement = root.value;
+  const layers = document.querySelector(".map-contents") as HTMLElement;
+
+
+  const layersWidth = layers.clientHeight;
+  setBasis(layers, layersWidth);
+}
+
+const handle = useTemplateRef<HTMLElement>("middle-handle");
+
+onMounted(() => {
+  
+  const handleValue = handle.value;
+  const panel = document.querySelector(".map-contents") as HTMLElement;
+  if (handleValue && panel) {
+    let startMousePos = 0;
+    let startPanelSize = 0;
+
+    const onLeftMove = (event: PointerEvent) => {
+      const dx = event.clientY - startMousePos;
+      const minSize = 250; // Minimum width for the left panel
+      const newSize = Math.max(minSize, startPanelSize + dx);
+      setBasis(panel, newSize);
+    };
+
+    const initialLeftHandler = (event: PointerEvent) => {
+      startMousePos = event.clientY;
+      startPanelSize = getBasis(panel);
+    };
+
+    setupHandleEvents({
+      handle: handleValue,
+      onMove: onLeftMove,
+      initialEventHandler: initialLeftHandler,
+    });
+
+  }
+
+  
+  
+
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = requestAnimationFrame(() => updateSizes());
+  });
+
+ 
+  updateSizes(true, true);
+
+});
+
+
 </script>
 
 <style lang="less">
@@ -832,6 +966,13 @@ watch(focusRegion, region => {
   display: flex;
   flex-direction: column;
   padding-inline: 8px;
+
+  > div {
+    flex-shrink: 0;
+  }
+  .map-contents {
+    flex-basis: 50%;
+  }
 
   .location-and-sharing {
     position: absolute;
@@ -994,6 +1135,40 @@ watch(focusRegion, region => {
   max-width: 200px;
   color: black;
 }
+
+
+.handle.vertical-handle {
+  flex: 0 0 var(--handle-size);
+  width: 100%;
+  margin-top: calc(var(--handle-size) + 6px); // 6px from box shadow
+  cursor: col-resize;
+  background: var(--handle-color);
+  position: relative;
+  touch-action: none;
+}
+
+.handle.vertical-handle:hover {
+  background: var(--handle-hover-color);
+}
+
+
+.handle.vertical-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.35);
+  box-shadow: 0 -6px 0 rgba(255,255,255,0.18), 0 6px 0 rgba(255,255,255,0.18);
+}
+
+.handle.vertical-handle:hover::after {
+  box-shadow: 0 -6px 0 rgba(255,2555,255,0.42), 0 6px 0 rgba(255,255,255,0.42);
+}
+
 
 @import "@/styles/maplibre-layer-control.css";
 </style>
