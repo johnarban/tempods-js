@@ -201,66 +201,12 @@
             />
             <div class="my-selections" v-if="timeRanges.length>0" style="margin-top: 1em;">
 
-              <v-list>
-                <v-hover
-                  v-for="(timeRange, index) in timeRanges"
-                  :key="index" v-slot="{ isHovering, props }"
-                  close-delay="50"
-                  open-delay="250"
-                  >
-                <v-list-item
-                  class="my-2 rounded-lg time-range-v-list-item"
-                  v-bind="props"
-                  density="compact"
-                  slim
-                  :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
-                >
-                  
-                  <template #default>
-                    <TimeRangeCard 
-                    :name="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
-                    :time-range="timeRange" 
-                    :is-hovering="isHovering ?? false"  
-                    />
-                  </template>
-                  <template #append>
-                  <div class="datset-controls-action-buttons time-range-action-buttons">
-                    <v-btn
-                      v-if="timeRange.id !== 'displayed-day'"
-                      variant="plain"
-                      size="small"
-                      density="compact"
-                      v-tooltip="'Edit Name'"
-                      icon="mdi-pencil"
-                      color="white"
-                      @click.stop="(event) => {
-                        editTimeRangeName(timeRange);
-                        event.stopPropagation();
-                      }"
-                    ></v-btn>
-                    <v-tooltip
-                      :text="datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange)) ? 'Cannot delete if time range has datasets' : 'Delete'"
-                      location="left"
-                    >
-                      <template #activator="{ props }">
-                        <div class="d-flex" v-bind="props">
-                          <v-btn
-                            variant="plain"
-                            :icon="datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange)) ? 'mdi-delete-off' : 'mdi-delete'"
-                            color="white"
-                            size="small"
-                            density="compact"
-                            :disabled="datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
-                            @click.stop="() => store.deleteTimeRange(timeRange)"
-                          ></v-btn>
-                        </div>
-                      </template>
-                    </v-tooltip>
-                  </div>
-                  </template>
-                </v-list-item>
-                </v-hover>
-              </v-list>
+              <TimeRangesControl
+                :time-ranges="timeRanges"
+                :datasets="datasets"
+                @edit-time-range="editTimeRangeName"
+                @delete-time-range="store.deleteTimeRange"
+              />
             </div>
           </template>
         </v-expansion-panel>
@@ -302,204 +248,19 @@
 
 
             
-            <dataset-card
+            <DatasetCardControl
               :datasets="datasets"
               :turn-on-selection="allDatasetSelection"
+              :show-error-bands="showErrorBands"
               v-model:selected-datasets="selectedDatasets"
-              @edit-region="(e) => handleEditDataset(e)"
-            >
-              <template #action-row="{ dataset }">
-                    <div
-                      v-if="(dataset.loading || !dataset.samples)  && !(dataset.timeRange?.type === 'folded' && dataset.plotlyDatasets)"
-                      class="dataset-loading"
-                    >
-                      <hr/>
-                      <v-progress-linear
-                        :class="['dataset-loading-progress', !(dataset.loading && dataset.samples) ? 'dataset-loading-failed' : '']"
-                        :active="dataset.loading || !dataset.samples"
-                        :color="dataset.loading ? 'primary' : 'red'"
-                        :indeterminate="dataset.loading"
-                        :value="!dataset.loading ? 100 : 0"
-                        :striped="!dataset.loading"
-                        bottom
-                        rounded
-                        height="20"
-                      >
-                        <template #default>
-                          <span class="text-subtitle-2">
-                            {{ dataset.loading ? 'Data Loading' : (!dataset.samples ? 'Error Loading Data' : '') }}
-                          </span>
-                        </template>
-                      </v-progress-linear>
-                      
-                      <v-tooltip
-                        text="Remove selection"
-                        location="top"
-                      >
-                        <template #activator="{ props }">
-                          <v-btn
-                            v-bind="props"
-                            size="x-small"
-                            icon="mdi-trash-can"
-                            variant="plain"
-                            @click.stop="() => removeDataset(dataset)"
-                          ></v-btn>
-                        </template>
-                      </v-tooltip>
-                      
-                      <div v-if="!(dataset.loading || dataset.samples || dataset.plotlyDatasets)">
-                        <hr/>
-                        <v-tooltip
-                          text="Failure info"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-help-circle"
-                              variant="plain"
-                              @click.stop="() => sampleErrorID = dataset.id"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-tooltip
-                          text="Remove selection"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-trash-can"
-                              variant="plain"
-                              @click.stop="() => removeDataset(dataset)"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                      </div>
-                    </div>
-
-                    <v-expand-transition>
-                      <div
-                        class="selection-icons"
-                        v-show="(dataset.samples || dataset.plotlyDatasets) && (touchscreen ? openSelection == dataset.id : true)"
-                      >
-                        <v-tooltip
-                          v-if="dataset.timeRange.type === 'single' || dataset.folded"
-                          text="Show graph"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-chart-line"
-                              :disabled="!(dataset.samples || dataset.plotlyDatasets)"
-                              variant="plain"
-                              @click.stop="() => openGraphs[dataset.id] = true"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-tooltip
-                          v-else
-                          text="Graph Data"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-chart-line"
-                              :disabled="!dataset.samples"
-                              variant="plain"
-                              @click.stop="() => openAggregationDialog(dataset)"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-tooltip
-                          text="Show table"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-table"
-                              :disabled="!dataset.samples && !dataset.folded"
-                              variant="plain"
-                              @click.stop="() => tableSelection = dataset"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        
-                        <v-tooltip
-                          text="Edit Dataset Name/Color"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-pencil"
-                              variant="plain"
-                              @click.stop="() => handleEditDataset(dataset)"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-spacer ></v-spacer>
-                        <v-tooltip
-                          text="Remove selection"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-trash-can"
-                              variant="plain"
-                              @click.stop="() => removeDataset(dataset)"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                      </div>
-                    </v-expand-transition>
-                    
-                    <cds-dialog
-                      :title="`${moleculeDescriptor(dataset.molecule).shortName.text} Quantity vs. Time`"
-                      v-model="openGraphs[dataset.id]"
-                      title-color="var(--info-background)"
-                      draggable
-                      persistent
-                      :scrim="false"
-                      :modal="false"
-                      max-height="fit-content"
-                      height="fit-content"
-                      :drag-predicate="titleBarPredicate"
-                    >
-                    
-                    <template v-if="(dataset.timeRange.type === 'folded' && dataset.plotlyDatasets) || (dataset.timeRange.type === 'single')">
-                        <user-dataset-plot
-                          :dataset="dataset"
-                          :show-errors="showErrorBands"
-                          :colors="[dataset.customColor ?? dataset.region.color, '#333']"
-                          :data-options="[{mode: 'markers'}, {mode: 'markers'}]"
-                          :names="[`Original Data`, `Binned`]"
-                          :layout-options="{
-                            width: 600, 
-                            height: 400,
-                            autosize: false,
-                            ...(dataset.folded ? {} : { xaxis: {title: {text: 'Local Time for Region'}}}),
-                          }"
-                          :fold-type="dataset.folded?.foldType"
-                          :timezones="dataset.folded?.timezone"
-                          :config-options="{responsive: false}"
-                          @plot-click="(value) => handlePlotClick({...value, molecule: dataset.molecule, region: dataset.region})"
-                        />
-                      </template>
-                    </cds-dialog>
-                  </template>
-                </dataset-card>
+              v-model:sample-error-id="sampleErrorID"
+              v-model:open-selection="openSelection"
+              v-model:table-selection="tableSelection"
+              @edit-dataset="handleEditDataset"
+              @remove-dataset="removeDataset"
+              @aggregate-dataset="openAggregationDialog"
+              @plot-click="handlePlotClick"
+            />
               </div>
               <div v-if="allDatasetSelection" class="dataset-select-all-none">
                 <v-btn
@@ -706,13 +467,11 @@
 import { computed, ref, shallowRef, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { v4 } from "uuid";
-import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
 import type { MillisecondRange, TimeRange, UserDataset, UnifiedRegion, MoleculeType } from "../types";
 import type { TimeRangeConfig } from "@/date_time_range_selection/date_time_range_generators";
 import { serializeTempoStore, useTempoStore } from "../stores/app";
-import { MOLECULE_OPTIONS, moleculeDescriptor } from "../esri/utils";
-import { areEquivalentTimeRanges, formatTimeRange } from "../utils/timeRange";
+import { MOLECULE_OPTIONS } from "../esri/utils";
 import { atleast1d } from "../utils/atleast1d";
 import { titleBarPredicate } from "../utils/draggable";
 
@@ -722,13 +481,12 @@ import { TimeRangeSelectionType } from "@/types/datetime";
 // import PlotlyGraph from "./plotly/PlotlyGraph.vue";
 // import FoldedPlotlyGraph from "./FoldedPlotlyGraph.vue";
 import CTextField from "./CTextField.vue";
-import DatasetCard from "./DatasetCard.vue";
 import { toZonedTime } from "date-fns-tz";
 // import { userDatasetToPlotly } from "@/utils/data_converters";
 import UserDatasetTable from "./UserDatasetTable.vue";
-import TimeRangeCard from "@/date_time_range_selection/TimeRangeCard.vue";
 import MultiPlot from "./plotly/MultiMoleculePlot.vue";
-import UserDatasetPlot from "./plotly/UserDatasetPlot.vue";
+import DatasetCardControl from "./DatasetCardControl.vue";
+import TimeRangesControl from "./TimeRangesControl.vue";
 
 type UnifiedRegionType = UnifiedRegion;
 
@@ -767,13 +525,8 @@ const cssVars = computed(() => {
   };
 });
 
-const touchscreen = supportsTouchscreen();
 
 const openPanels = ref<number[]>([0, 1, 2]);
-const openGraphs = ref<Record<string,boolean>>({});
-watch(openGraphs, (og) => {
-  console.log(og);
-}, {deep: true, immediate: true});
 const openSelection = ref<string | null>(null);
 const tableSelection = ref<UserDataset | null>(null);
 const currentlyEditingDataset = ref<UserDataset | null>(null);
@@ -782,7 +535,6 @@ const showMultiPlot = ref(false);
 
 const createTimeRangeActive = ref(false);
 const createDatasetActive = ref(false);
-const datasetRowRefs = ref({});
 const sampleErrorID = ref<string | null>(null);
 
 const showEditRegionNameDialog = ref(false);
@@ -845,9 +597,6 @@ function handleEditDataset(dataset: UserDataset, nameOnly = false) {
 
 function removeDataset(dataset: UserDataset) {
   store.deleteDataset(dataset);
-
-  delete openGraphs[dataset.id];
-  delete datasetRowRefs[dataset.id];
 }
 
 function handleDateTimeRangeSelectionChange(
@@ -989,10 +738,6 @@ function handlePlotClick(value: {x: number | string | Date | null, y: number, cu
   // background-color: #555555;
 }
 
-.selection-icons {
-  display: flex;
-}
-
 .h3-panel-titles {
   font-size: 1.17em;
   font-weight: bold;
@@ -1034,27 +779,11 @@ function handlePlotClick(value: {x: number | string | Date | null, y: number, cu
   margin-bottom: 8px;
 }
 
-.dataset-loading {
-  display: flex;
-  align-items: center;
-}
-
 .datset-controls-action-buttons {
   display: flex;
   flex-direction: row;
   gap: 8px;
 }
-.time-range-action-buttons {
-  text-align: right;
-}
-
-.time-range-v-list-item:nth-child(odd) {
-  background-color: #444444;
-}
-.time-range-v-list-item:nth-child(even) {
-  background-color: #656565;
-}
-
 :deep(.v-checkbox .v-label),
 :deep(.v-slider__label),
 :deep(.v-list-item-title)

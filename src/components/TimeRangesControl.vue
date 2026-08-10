@@ -1,0 +1,106 @@
+<template>
+  <v-list>
+    <v-hover
+      v-for="(timeRange, index) in timeRanges"
+      :key="index" v-slot="{ isHovering, props }"
+      close-delay="50"
+      open-delay="250"
+      >
+    <v-list-item
+      class="my-2 rounded-lg time-range-v-list-item"
+      v-bind="props"
+      density="compact"
+      slim
+      :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
+    >
+
+      <template #default>
+        <TimeRangeCard
+        :name="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
+        :time-range="timeRange"
+        :is-hovering="isHovering ?? false"
+        />
+      </template>
+      <template #append>
+      <div class="datset-controls-action-buttons time-range-action-buttons">
+        <v-btn
+          v-if="timeRange.id !== 'displayed-day'"
+          variant="plain"
+          size="small"
+          density="compact"
+          v-tooltip="'Edit Name'"
+          icon="mdi-pencil"
+          color="white"
+          @click.stop="() => emit('edit-time-range', timeRange)"
+        ></v-btn>
+        <v-tooltip
+          :text="hasDatasets(timeRange) ? 'Cannot delete if time range has datasets' : 'Delete'"
+          location="left"
+        >
+          <template #activator="{ props }">
+            <div class="d-flex" v-bind="props">
+              <v-btn
+                variant="plain"
+                :icon="hasDatasets(timeRange) ? 'mdi-delete-off' : 'mdi-delete'"
+                color="white"
+                size="small"
+                density="compact"
+                :disabled="hasDatasets(timeRange)"
+                @click.stop="() => emit('delete-time-range', timeRange)"
+              ></v-btn>
+            </div>
+          </template>
+        </v-tooltip>
+      </div>
+      </template>
+    </v-list-item>
+    </v-hover>
+  </v-list>
+</template>
+
+<script setup lang="ts">
+import type { TimeRange, UserDataset } from "../types";
+import { areEquivalentTimeRanges, formatTimeRange } from "../utils/timeRange";
+
+import TimeRangeCard from "@/date_time_range_selection/TimeRangeCard.vue";
+
+interface TimeRangesControlProps {
+  timeRanges: TimeRange[];
+  /** only used to decide whether a time range is safe to delete */
+  datasets: UserDataset[];
+}
+
+const { datasets } = defineProps<TimeRangesControlProps>();
+
+const emit = defineEmits<{
+  (event: "edit-time-range", timeRange: TimeRange): void;
+  (event: "delete-time-range", timeRange: TimeRange): void;
+}>();
+
+function hasDatasets(timeRange: TimeRange): boolean {
+  return datasets.some(d => areEquivalentTimeRanges(d.timeRange, timeRange));
+}
+</script>
+
+<style scoped lang="less">
+.datset-controls-action-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+.time-range-action-buttons {
+  text-align: right;
+}
+
+.time-range-v-list-item:nth-child(odd) {
+  background-color: #444444;
+}
+.time-range-v-list-item:nth-child(even) {
+  background-color: #656565;
+}
+
+:deep(.v-list-item-title)
+{
+  font-size: 10pt;
+}
+</style>
