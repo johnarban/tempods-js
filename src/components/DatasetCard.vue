@@ -46,7 +46,7 @@
               :icon="showDetails[num] ? 'mdi-chevron-up' : 'mdi-chevron-down'"
               variant="text"
               density="compact"
-              v-tooltip="showDetails[num] ? 'Hide Details' : 'Show details'"
+              v-tooltip:top="showDetails[num] ? 'Hide Details' : 'Show details'"
               @click.stop="showDetails[num] = !showDetails[num]"
             >
             </v-btn>

@@ -1,34 +1,51 @@
 <template>
   <v-list>
-    <v-hover
+    <!-- hide vestigial hover for now -->
+    <!-- <v-hover
       v-for="(timeRange, index) in timeRanges"
-      :key="index" v-slot="{ isHovering, props }"
+      :key="index" v-slot="{ props }"
       close-delay="50"
       open-delay="250"
-      >
+      > -->
     <v-list-item
+      v-for="(timeRange, index) in timeRanges"
+      :key="index"
       class="my-2 rounded-lg time-range-v-list-item"
-      v-bind="props"
       density="compact"
       slim
-      :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
     >
-
+      <template #title>
+        <div class="d-flex flex-row justify-space-between align-center">
+          <span class="text-subtitle-2 font-weight-bold">
+            {{ timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range)) }}
+          </span>
+          <v-btn
+            class="float-right"
+            :icon="showDetails[index] ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+            variant="text"
+            density="compact"
+            v-tooltip:top="showDetails[index] ? 'Hide Details' : 'Show details'"
+            @click.stop="showDetails[index] = !showDetails[index]"
+          >
+          </v-btn>
+        </div>
+      </template>
       <template #default>
         <TimeRangeCard
+        class="mb-1"
         :name="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
         :time-range="timeRange"
-        :is-hovering="isHovering ?? false"
+        :show="showDetails[index]"
         />
-      </template>
-      <template #append>
-      <div class="datset-controls-action-buttons time-range-action-buttons">
+      <!-- </template> -->
+      <!-- <template #append> -->
+      <div class="datset-controls-action-buttons time-range-action-buttons justify-space-between">
         <v-btn
           v-if="timeRange.id !== 'displayed-day'"
           variant="plain"
           size="small"
           density="compact"
-          v-tooltip="'Edit Name'"
+          v-tooltip:top="'Edit Name'"
           icon="mdi-pencil"
           color="white"
           @click.stop="() => emit('edit-time-range', timeRange)"
@@ -41,7 +58,7 @@
             <div class="d-flex" v-bind="props">
               <v-btn
                 variant="plain"
-                :icon="hasDatasets(timeRange) ? 'mdi-delete-off' : 'mdi-delete'"
+                :icon="hasDatasets(timeRange) ? 'mdi-delete-off' : 'mdi-trash-can'"
                 color="white"
                 size="small"
                 density="compact"
@@ -54,11 +71,12 @@
       </div>
       </template>
     </v-list-item>
-    </v-hover>
+    <!-- </v-hover> -->
   </v-list>
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import type { TimeRange, UserDataset } from "../types";
 import { areEquivalentTimeRanges, formatTimeRange } from "../utils/timeRange";
 
@@ -70,7 +88,7 @@ interface TimeRangesControlProps {
   datasets: UserDataset[];
 }
 
-const { datasets } = defineProps<TimeRangesControlProps>();
+const props = defineProps<TimeRangesControlProps>();
 
 const emit = defineEmits<{
   (event: "edit-time-range", timeRange: TimeRange): void;
@@ -78,8 +96,10 @@ const emit = defineEmits<{
 }>();
 
 function hasDatasets(timeRange: TimeRange): boolean {
-  return datasets.some(d => areEquivalentTimeRanges(d.timeRange, timeRange));
+  return props.datasets.some(d => areEquivalentTimeRanges(d.timeRange, timeRange));
 }
+
+const showDetails = ref(props.datasets.map(() => false));
 </script>
 
 <style scoped lang="less">

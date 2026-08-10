@@ -134,7 +134,7 @@
                     <div class="datset-controls-action-buttons region-action-buttons">
                     <v-btn
                       variant="plain"
-                      v-tooltip="'Edit Name and Color'"
+                      v-tooltip:top="'Edit Name and Color'"
                       icon="mdi-pencil"
                       color="white"
                       size="small"
@@ -151,7 +151,7 @@
                         <div class="d-flex" v-bind="props">
                           <v-btn
                             variant="plain"
-                            :icon="store.regionHasDatasets(region as UnifiedRegionType) ? 'mdi-delete-off' : 'mdi-delete'"
+                            :icon="store.regionHasDatasets(region as UnifiedRegionType) ? 'mdi-delete-off' : 'mdi-trash-can'"
                             color="white"
                             size="small"
                             density="compact"
