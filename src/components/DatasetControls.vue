@@ -143,18 +143,26 @@
                         editRegionName(region as UnifiedRegionType);
                       }"
                     ></v-btn>
-                    <v-btn
-                      v-if="!store.regionHasDatasets(region as UnifiedRegionType)"
-                      variant="plain"
-                      v-tooltip="'Delete'"
-                      icon="mdi-delete"
-                      color="white"
-                      size="small"
-                      density="compact"
-                      @click.stop="(event: MouseEvent | KeyboardEvent) => {
-                        store.deleteRegion(region as UnifiedRegionType);
-                      }"
-                    ></v-btn>
+                    <v-tooltip
+                      :text="store.regionHasDatasets(region as UnifiedRegionType) ? 'Cannot delete if region has datasets' : 'Delete'"
+                      location="left"
+                    >
+                      <template #activator="{ props }">
+                        <div class="d-flex" v-bind="props">
+                          <v-btn
+                            variant="plain"
+                            :icon="store.regionHasDatasets(region as UnifiedRegionType) ? 'mdi-delete-off' : 'mdi-delete'"
+                            color="white"
+                            size="small"
+                            density="compact"
+                            :disabled="store.regionHasDatasets(region as UnifiedRegionType)"
+                            @click.stop="(event: MouseEvent | KeyboardEvent) => {
+                                store.deleteRegion(region as UnifiedRegionType);
+                            }"
+                          ></v-btn>
+                          </div>
+                      </template>
+                    </v-tooltip>
                     </div>
                   </template>
                 </v-list-item>
@@ -230,17 +238,24 @@
                         event.stopPropagation();
                       }"
                     ></v-btn>
-                    <v-btn
-                      v-if="timeRange.id !== 'displayed-day' && !datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
-                      variant="plain"
-                      size="small"
-                      density="compact"
-                      v-tooltip="'Delete'"
-                      icon="mdi-delete"
-                      color="white"
-                      @click.stop="() => store.deleteTimeRange(timeRange)"
+                    <v-tooltip
+                      :text="datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange)) ? 'Cannot delete if time range has datasets' : 'Delete'"
+                      location="left"
                     >
-                    </v-btn>
+                      <template #activator="{ props }">
+                        <div class="d-flex" v-bind="props">
+                          <v-btn
+                            variant="plain"
+                            :icon="datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange)) ? 'mdi-delete-off' : 'mdi-delete'"
+                            color="white"
+                            size="small"
+                            density="compact"
+                            :disabled="datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
+                            @click.stop="() => store.deleteTimeRange(timeRange)"
+                          ></v-btn>
+                        </div>
+                      </template>
+                    </v-tooltip>
                   </div>
                   </template>
                 </v-list-item>
