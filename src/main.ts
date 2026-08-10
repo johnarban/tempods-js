@@ -54,6 +54,7 @@ import '@vuepic/vue-datepicker/dist/main.css';
 import "./styles/vue3-date-picker-styles.css";
 import "./styles/molecule-svg.css";
 import "./styles/styles.css";
+import "./styles/scrollbars.css";
 import { UseClipboard } from "@vueuse/components";
 
 import "shepherd.js/dist/css/shepherd.css";

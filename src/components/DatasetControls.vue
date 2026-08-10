@@ -717,7 +717,6 @@ function handlePlotClick(value: {x: number | string | Date | null, y: number, cu
 #dataset-sections {
   font-size: 11pt !important;
   min-width: 250px;
-  overflow-y: auto;
 }
 
 // prevent overflows of the content

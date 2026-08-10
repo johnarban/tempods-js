@@ -34,7 +34,7 @@
       <side-placeholder
         id="layers-panel"
         ref="layers-panel"
-        class="panel"
+        class="panel scroll-y"
         open-direction="right"
         icon="mdi-layers"
         :color="accentColor2"
@@ -88,7 +88,7 @@
         </template>
       </v-tooltip>
 
-      <map-with-controls id="map-panel" />
+      <map-with-controls id="map-panel" class="scroll-y" />
 
       <v-tooltip
         text="Change panel width"
@@ -109,7 +109,7 @@
       <side-placeholder
         id="datasets-panel"
         ref="datasets-panel"
-        class="panel"
+        class="panel scroll-y"
         open-direction="left"
         icon="mdi-chart-line"
         :color="accentColor2"
@@ -402,18 +402,14 @@ body {
   height: 100%;
 }
 
-.map-panel {
+// this was a class and should have been an id selector,
+// so only left important things
+#map-panel {
   min-width: 250px;
-  display: flex;
-  flex-direction: row;
   padding-left: 10px;
-  gap: 5px;
-  overflow-y: scroll;
-  height: 100%;
 }
 
 #layers-panel, #datasets-panel {
-  overflow-y: scroll;
   /* these were already 0, just make 
   what we're starting with clearer */
   margin: 0;
@@ -476,7 +472,6 @@ body {
   width: 100%;
   background: var(--panel);
   box-sizing: border-box;
-  overflow: auto;
   border: 1px solid rgba(255,255,255,0.06);
 }
 
