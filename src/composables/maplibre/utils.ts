@@ -24,6 +24,7 @@ function outlineLayerId(layerId: string): string {
 
 export function addRectangleLayer(
   map: Map,
+  id: string, 
   info: RectangleSelectionInfo,
   color: string,
   opacity=0.7,
@@ -32,7 +33,7 @@ export function addRectangleLayer(
   outlineWidth=1.5,
 ) {
 
-  const uuid = v4();
+  const uuid = id ?? v4();
   const geoJson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
     features: [{
@@ -118,11 +119,12 @@ export function removeRectangleLayer(
 // Point layer utilities
 export function addPointLayer(
   map: Map,
+  id: string,
   info: PointSelectionInfo,
   color: string,
   visible=true,
 ) {
-  const uuid = v4();
+  const uuid = id ?? v4();
   const geoJson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
     features: [{

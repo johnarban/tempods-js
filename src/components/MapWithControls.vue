@@ -640,14 +640,15 @@ function rectangleIsDegenerate(info: RectangleSelectionInfo): boolean {
 }
 
 function addLayer(
+  id: string,
   info: RectangleSelectionInfo | PointSelectionInfo,
   geometryType: "rectangle" | "point",
   color: string,
 ): { layer: GeoJSONSource } {
   const isRect = geometryType === 'rectangle';
   const layerInfo = isRect ?
-    addRectangleLayer((map.value)!, info as RectangleSelectionInfo, color, regionOpacity.value, regionVisibility.value) :
-    addPointLayer((map.value)!, info as PointSelectionInfo, color, regionVisibility.value);
+    addRectangleLayer((map.value)!, id, info as RectangleSelectionInfo, color, regionOpacity.value, regionVisibility.value) :
+    addPointLayer((map.value)!, id,  info as PointSelectionInfo, color, regionVisibility.value);
   layerInfo.layerIds.forEach(id => map.value?.moveLayer(id));
   return layerInfo;
 }
@@ -668,8 +669,8 @@ function createRegion(info: RectangleSelectionInfo | PointSelectionInfo, geometr
   const color = COLORS[regionsCreatedCount.value % COLORS.length];
   regionsCreatedCount.value += 1;
 
-  const id = v4();
-  const { layer } = addLayer(info, geometryType, color);
+  const id = v4(); // this will serve as the id of the region and the main filled layer
+  const { layer } = addLayer(id, info, geometryType, color);
   regionLayers[id] = layer;
   return {
     id,
@@ -677,6 +678,7 @@ function createRegion(info: RectangleSelectionInfo | PointSelectionInfo, geometr
     geometryInfo: toRaw(info),
     geometryType: geometryType,
     color,
+    defaultColor: color,
   } as UnifiedRegionType;
 }
 
@@ -693,7 +695,7 @@ function updateRegionLayers(newRegions: UnifiedRegionType[]) {
   const removed = getRegionsDifference(existingRegions, newRegions);
   added.forEach(region => {
     if (map.value && !regionLayers[region.id]) {
-      const { layer } = addLayer(region.geometryInfo, region.geometryType, region.color);
+      const { layer } = addLayer(region.id, region.geometryInfo, region.geometryType, region.color);
       regionLayers[region.id] = layer;
     }
   });

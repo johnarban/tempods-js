@@ -134,7 +134,7 @@
                     <div class="datset-controls-action-buttons region-action-buttons">
                     <v-btn
                       variant="plain"
-                      v-tooltip="'Edit Name'"
+                      v-tooltip="'Edit Name and Color'"
                       icon="mdi-pencil"
                       color="white"
                       size="small"
@@ -549,25 +549,22 @@
   <v-dialog
   v-model="showEditRegionNameDialog"
   >
-  <!-- text field that requires a confirmation -->
-  <c-text-field
-  label="Region Name"
-  title="Enter a new name for this region"
-  hide-details
-  dense
-  :button-color="accentColor"
-  @confirm="(name: string) => {
-    if (regionBeingEdited) {
-      store.setRegionName(regionBeingEdited as UnifiedRegionType, name);
-      showEditRegionNameDialog = false;
-    }
-  }"
-          @cancel="() => {
-            showEditRegionNameDialog = false;
-            regionBeingEdited = null;
-          }"
-        ></c-text-field>
-      </v-dialog>
+    <RegionEditor
+      v-if="regionBeingEdited"
+      :region="regionBeingEdited"
+      @change="(name: string, color: string) => {
+        if (regionBeingEdited) {
+          store.setRegionName(regionBeingEdited as UnifiedRegionType, name);
+          store.setRegionColor(regionBeingEdited as UnifiedRegionType, color);
+          showEditRegionNameDialog = false;
+        }
+      }"
+      @cancel="() => {
+        showEditRegionNameDialog = false;
+        regionBeingEdited = null;
+      }"
+    />
+  </v-dialog>
       
     <v-dialog
       :model-value="sampleErrorID !== null"
@@ -691,7 +688,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, shallowRef, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { v4 } from "uuid";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
@@ -774,7 +771,7 @@ const datasetRowRefs = ref({});
 const sampleErrorID = ref<string | null>(null);
 
 const showEditRegionNameDialog = ref(false);
-const regionBeingEdited = ref<UnifiedRegionType | null>(null);
+const regionBeingEdited = shallowRef<UnifiedRegionType | null>(null);
 
 const showEditTimeRangeNameDialog = ref(false);
 const timeRangeBeingEdited = ref<TimeRange | null>(null);
@@ -822,6 +819,7 @@ function handleDatasetCreated(dataset: UserDataset) {
 
 import UserDatasetEditor from "./UserDatasetEditor.vue";
 import { contrastingColor } from "@/utils/color";
+import RegionEditor from "./RegionEditor.vue";
 const showDatasetEditor = ref(false);
 const datasetEditorNameOnly = ref(false);
 function handleEditDataset(dataset: UserDataset, nameOnly = false) {

@@ -272,6 +272,36 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
       }
     });
   }
+  
+  function setRegionColor(region: UnifiedRegion, newColor: string) {
+    if (newColor.trim() === '') {
+      console.error("Region color cannot be empty.");
+      return;
+    }
+    region.color = newColor;
+    console.log(`Changed ${region.geometryType} region color to: ${newColor}`);
+    if (maps.value.length > 0) {
+      const map = maps.value[0];
+
+      // this is setup so that the region id is the same as the id of the main filled layer
+      if (map.getLayer(region.id)) {
+        if (region.geometryType === 'rectangle') {
+          map.setPaintProperty(region.id, "fill-color", newColor);
+
+        } else if (region.geometryType === 'point') {
+          map.setPaintProperty(region.id, "circle-color", newColor);
+
+        }
+      }
+    }
+    
+    // check for any datasets using this region and update the region color
+    datasets.value.forEach(ds => {
+      if (ds.region.id === region.id) {
+        ds.region.color = region.color;
+      }
+    });
+  }
 
   function setTimeRangeName(timeRange: TimeRange, newName: string) {
     if (newName.trim() === '') {
@@ -437,6 +467,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     datasetHasSamples,
     regionHasDatasets,
     setRegionName,
+    setRegionColor,
     setTimeRangeName,
 
     deleteTimeRange,

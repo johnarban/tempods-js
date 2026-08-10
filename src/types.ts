@@ -121,6 +121,7 @@ export interface RectangleSelection {
   geometryInfo: RectangleSelectionInfo; // renamed from rectangle for future shape generalization
   geometryType: 'rectangle';
   color: string;
+  defaultColor: string;
   source?: GeoJSONSource;
 }
 
@@ -131,6 +132,7 @@ export interface PointSelection {
   geometryInfo: PointSelectionInfo;
   geometryType: 'point';
   color: string;
+  defaultColor: string;
   source?: GeoJSONSource;
 }
 
