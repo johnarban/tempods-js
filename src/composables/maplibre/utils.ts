@@ -75,7 +75,7 @@ export function addRectangleLayer(
     paint: {
       "line-color": outlineColor,
       "line-width": outlineWidth,
-      "line-opacity": opacity,
+      "line-opacity": 1.0,
     },
     layout: {
       visibility: visible ? "visible" : "none",
