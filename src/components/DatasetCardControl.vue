@@ -36,6 +36,7 @@
           >
             <template #activator="{ props }">
               <v-btn
+                v-if="dataset.summary && dataset.summary.successCount === 0"
                 v-bind="props"
                 size="x-small"
                 icon="mdi-trash-can"
@@ -66,7 +67,7 @@
 
         <v-expand-transition>
           <div
-            v-if="!datasetFailed(dataset)"
+            v-if="!datasetFailed(dataset) || (dataset.summary.successCount > 0)"
             class="selection-icons"
             v-show="(dataset.samples || dataset.plotlyDatasets) && (touchscreen ? openSelection == dataset.id : true)"
           >
@@ -133,6 +134,21 @@
               </template>
             </v-tooltip>
             <v-spacer ></v-spacer>
+            <v-tooltip
+              text="Try loading this data again"
+              location="top"
+            >
+              <template #activator="{ props }">
+                <v-btn
+                  v-if="datasetFailed(dataset)"
+                  v-bind="props"
+                  size="x-small"
+                  icon="mdi-refresh"
+                  variant="plain"
+                  @click.stop="() => emit('retry-dataset', dataset)"
+                ></v-btn>
+              </template>
+            </v-tooltip>
             <v-tooltip
               text="Remove selection"
               location="top"
