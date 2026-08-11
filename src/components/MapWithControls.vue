@@ -806,7 +806,8 @@ currentTempoDataService.value.withMetadataCache().then(meta => {
   console.log("could not create sampler because there is no metada");
 });
 
-watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal) => {
+// watch the map and sampler too
+watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length, map, sampler], (newVal) => {
   const tempoDataService = currentTempoDataService.value;
   const show = newVal[0];
   const regs = newVal[1];
@@ -825,7 +826,7 @@ watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal)
     });
     samplingPreviewMarkers.addMarkers(locations);
   }
-});
+}, { immediate: true });
 
 // TODO: This may need to be revisited when there are two maps
 watch(focusRegion, region => {
