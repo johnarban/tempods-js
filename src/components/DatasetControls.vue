@@ -278,26 +278,27 @@
                   variant="outlined"
                   size="small"
                   class="ml-2"
+                  :disabled="selectedDatasets.length === 0"
                   @click.stop="selectedDatasets = []"
                 >
                   <template #prepend>
                     <v-icon icon="mdi-close-circle" color="error"/>
                   </template>
-                  Clear
+                  Uncheck All
                 </v-btn>
               </div>
-              <div class="d-flex flex-column align-items-center justify-space-between ga-2">
+              <div class="d-flex flex-column align-items-center justify-space-between ga-2" :class="{'flex-column-reverse': allDatasetSelection }">
                 <v-btn 
                 v-if="datasets.length > 1"
                 :disabled="datasets.length === 0 || !datasets.every(d => d.samples || d.plotlyDatasets)"
-                color="#ffcc33" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
+                :color="allDatasetSelection ? '#333': '#ffcc33'" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
                 {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
               </v-btn>
               <v-btn 
-              v-if="datasets.length > 1"
+              v-if="datasets.length > 1 && allDatasetSelection"
               :color="accentColor2"
               :disabled="selectedDatasets.length == 0"
-              :variant="selectedDatasets.length > 0 ? 'flat' : 'outlined'"
+              :variant="selectedDatasets.length > 0 ? 'flat' : 'flat'"
               size="small"
               @click.stop="showMultiPlot = true">
               Graph Selected Datasets
