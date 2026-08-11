@@ -1,7 +1,7 @@
 import { GeoJSONSource, LngLatBoundsLike, Map } from "maplibre-gl";
 import { v4 } from "uuid";
 
-import { syncLayerVisibilityAndOpacity } from "@/composables/useSyncedVisibilityAndOpacity";
+import { syncLayerVisibility } from "@/composables/useSyncedVisibilityAndOpacity";
 
 import { RectangleSelectionInfo, PointSelectionInfo, UnifiedRegion } from "../../types";
 
@@ -81,7 +81,22 @@ export function addRectangleLayer(
       visibility: visible ? "visible" : "none",
     }
   });
-  syncLayerVisibilityAndOpacity(map, uuid, outlineId);
+  // const coloredOutlineId = outlineLayerId(uuid)+"-colored";
+  // map.addLayer({
+  //   id: coloredOutlineId,
+  //   type: "line",
+  //   source: uuid,
+  //   paint: {
+  //     "line-color": color,
+  //     "line-width": outlineWidth * 1.5,
+  //     "line-opacity": 1.0,
+  //   },
+  //   layout: {
+  //     visibility: visible ? "visible" : "none",
+  //   }
+  // });
+  syncLayerVisibility(map, uuid, outlineId);
+  // syncLayerVisibilityAndOpacity(map, uuid, outlineId);
 
   return { layer: source, layerIds: [uuid, outlineId] };
 }
