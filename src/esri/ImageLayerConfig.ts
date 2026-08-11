@@ -98,7 +98,7 @@ export const colorbarOptions = {
     colormap: colorramps['NO2_Troposphere'], 
     rgbcolormap: rgbcolorramps['NO2_Troposphere'],
     label:'NO<sub>2</sub>',
-    unit: "mol/cm<sup>2</sup>",
+    unit: "molecules/cm<sup>2</sup>",
   },
   'lite': {
     stretch: stretches['lite'], 
@@ -107,7 +107,7 @@ export const colorbarOptions = {
     colormap: colorramps['lite'], 
     rgbcolormap: colorramps['lite'],
     label:'NO<sub>2</sub>',
-    unit: "mol/cm<sup>2</sup>",
+    unit: "molecules/cm<sup>2</sup>",
   },
   'no2Monthly': {
     stretch: stretches['NO2_Troposphere'], 
@@ -116,7 +116,7 @@ export const colorbarOptions = {
     colormap: colorramps['NO2_Troposphere'], 
     rgbcolormap: rgbcolorramps['NO2_Troposphere'],
     label: 'NO<sub>2</sub>',
-    unit: "mol/cm<sup>2</sup>",
+    unit: "molecules/cm<sup>2</sup>",
   },
   'no2DailyMax': {
     stretch: stretches['NO2_Troposphere'], 
@@ -125,7 +125,7 @@ export const colorbarOptions = {
     colormap: colorramps['NO2_Troposphere'], 
     rgbcolormap: rgbcolorramps['NO2_Troposphere'],
     label: 'NO<sub>2</sub>',
-    unit: "mol/cm<sup>2</sup>",
+    unit: "molecules/cm<sup>2</sup>",
   },
   'o3': {
     stretch: stretches['Ozone_Column_Amount'], 
@@ -152,7 +152,7 @@ export const colorbarOptions = {
     colormap: colorramps['HCHO'], 
     rgbcolormap: rgbcolorramps['HCHO'],
     label: 'Formaldehyde',
-    unit: "mol/cm<sup>2</sup>",
+    unit: "molecules/cm<sup>2</sup>",
   },
   'hchoMonthly': {
     stretch: stretches['HCHO'], 
@@ -161,7 +161,7 @@ export const colorbarOptions = {
     colormap: colorramps['HCHO'], 
     rgbcolormap: rgbcolorramps['HCHO'],
     label: 'Formaldehyde',
-    unit: "mol/cm<sup>2</sup>",
+    unit: "molecules/cm<sup>2</sup>",
   },
   'hchoDailyMax': {
     stretch: stretches['HCHO'], 
@@ -170,7 +170,7 @@ export const colorbarOptions = {
     colormap: colorramps['HCHO'], 
     rgbcolormap: rgbcolorramps['HCHO'],
     label: 'Formaldehyde',
-    unit: "mol/cm<sup>2</sup>",
+    unit: "molecules/cm<sup>2</sup>",
   },
 };
 
