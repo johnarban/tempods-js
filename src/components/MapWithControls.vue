@@ -72,38 +72,8 @@
         </template>
       </v-tooltip>
     
-    <div class="slider-row mx-16 mt-12">
-      <v-slider
-        class="time-slider"
-        v-model="timeIndex"
-        :min="minIndex"
-        :max="maxIndex"
-        :step="1"
-        color="#068ede95"
-        thumb-label="always"
-        :track-size="10"
-        show-ticks="always"
-        hide-details
-        @end="() => {
-          timeSliderUsedCount += 1;
-          // if (map) {
-          //   setLayerVisibility(map as Map, activeLayer, true);
-          // }
-        }"
-      >
-        <template v-slot:thumb-label>
-          <div class="thumb-label">
-            {{ thumbLabel }}
-          </div>
-        </template>
-      </v-slider>
-      <icon-button
-        class="play-pause"
-        :fa-icon="playing ? 'pause' : 'play'"
-        fa-size="sm"
-        @activate="playing = !playing"
-      ></icon-button>
-    </div>
+    <TimeSlider />
+    
     <div class="d-flex flex-row">
       <map-controls
         class="flex-grow-1"
@@ -140,6 +110,8 @@ import { usePointSelection } from "@/composables/maplibre/usePointSelection";
 import { COLORS } from "@/utils/color";
 import { EsriSampler } from "@/esri/services/sampling";
 import { useMultiMarker } from '@/composables/maplibre/useMultiMarker';
+
+import TimeSlider from "@/components/TimeSlider.vue";
 
 import { setLayerOpacity, setLayerVisibility } from "@/maplibre_controls";
 
@@ -1028,87 +1000,14 @@ onMounted(() => {
     border: 1px solid #068ede;
   }
 
-  .slider-row {
-    display: flex;
-    flex-direction: row;
-    padding-left: 0;
-  }
 
-  >.play-pause {
-    height: fit-content;
-    align-self: center;
-    padding-inline: 0.5rem;
-    margin-left: 0.75rem;
-    width: 2.5rem;
-    color: var(--accent-color);
-    border: 2px solid var(--accent-color);
-  }
-
-  .play-pause[disabled] {
-    filter: grayscale(100%);
-    cursor: progress;
-    cursor: not-allowed;
-  }
 
   .icon-wrapper {
     padding-inline: 0.5rem !important;
   }
 }
 
-.time-slider {
 
-  .v-slider-thumb {
-
-    .v-slider-thumb__surface::after {
-      background-image: url("@/assets/smithsonian.png");
-      background-size: 30px 30px;
-      height: 30px;
-      width: 30px;
-    }
-
-    .v-slider-thumb__label {
-      background-color: var(--accent-color-2);
-      border: 0.25rem solid var(--accent-color);
-      width: max-content;
-      height: 2.5rem;
-      font-size: 1rem;
-
-      &::before {
-        color: var(--accent-color);
-      }
-    }
-  }
-
-  .v-slider-track__tick {
-    background-color: var(--accent-color);
-    /* Change color */
-    height: 15px;
-    /* Change size */
-    width: 4px;
-    margin-top: 0 !important;
-    // top: -10%;
-  }
-
-  .v-slider {
-
-    .v-slider.v-input--horizontal {
-      grid-template-rows: auto 0px;
-    }
-
-    .v-slider.v-input--horizontal .v-slider-thumb__label {
-      // top: calc(var(--v-slider-thumb-size) * 1.5);
-      z-index: 2000;
-    }
-
-    .v-slider.v-input--horizontal .v-slider-thumb__label::before {
-      border-left: 6px solid transparent;
-      border-right: 6px solid transparent;
-      border-bottom: 6px solid transparent;
-      border-top: 6px solid currentColor;
-      bottom: -15px;
-    }
-  }
-}
 
 #opacity-slider-container {
   display: flex;
