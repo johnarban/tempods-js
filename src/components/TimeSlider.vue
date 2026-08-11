@@ -30,6 +30,23 @@
         fa-size="sm"
         @activate="playing = !playing"
       ></icon-button>
+      <div class="playback-rate-control ml-4">
+        <select
+          id="playback-rate-select"
+          v-model="playingRate"
+          class="playback-rate-select"
+          name="playback-rate"
+        >
+          <option v-for="rate in playRateOptions" :key="rate" :value="rate">
+            {{ rate }}
+          </option>
+        </select>
+        <!-- visually hidden prefix so the accessible name reads
+             "Playback rate, sec/frame" while the visible text stays compact -->
+        <label class="playback-rate-label" for="playback-rate-select">
+          <span class="visually-hidden">Playback rate, </span>sec/frame
+        </label>
+      </div>
     </div>
 </template>
 
@@ -72,6 +89,8 @@ type Timeout = ReturnType<typeof setTimeout>;
 
 const playing = ref(false);
 const playInterval = ref<Timeout | null>(null);
+const playRateOptions = [0.5, 1, 1.5, 2, 2.5, 5] as const;
+const playingRate = ref(1);
   
   
 watch(playing, (val: boolean) => {
@@ -95,7 +114,7 @@ function play() {
     } else {
       timeIndex.value += 1;
     }
-  }, 1000);
+  }, 1000 * playingRate.value);
 }
 
 
@@ -104,6 +123,13 @@ function pause() {
     clearInterval(playInterval.value);
   }
 }
+
+watch(playingRate, () => {
+  if (playing.value) {
+    pause();
+    play();
+  }
+});
 
 
 </script>
@@ -129,6 +155,30 @@ function pause() {
   filter: grayscale(100%);
   cursor: progress;
   cursor: not-allowed;
+}
+
+.playback-rate-select {
+  border: 1px solid #fff;
+  border-radius: 4px;
+  padding: 0.25rem;
+  text-align: center;
+}
+
+.playback-rate-control {
+  position: relative;
+  align-self: center;
+}
+
+.playback-rate-label {
+  position: absolute;
+  top: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #f2f2f2;
+  font-size: 0.7rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .time-slider {
