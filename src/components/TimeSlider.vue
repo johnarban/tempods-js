@@ -1,10 +1,15 @@
 <template>
   <div class="slider-row mx-16 mt-12">
       <v-slider
-        class="time-slider"
-        v-model="timeIndex"
+        :class='[
+          "time-slider",
+          maxIndex <= minIndex ? "hide-first-last-ticks" : "",
+          maxIndex < minIndex + 7 ? `hide-ticks-${minIndex + 7 - maxIndex}` : "",
+          ]'
+        :disabled="maxIndex <= minIndex"
+        v-model="timeSliderIndex"
         :min="minIndex"
-        :max="maxIndex"
+        :max="Math.max(minIndex + 7, maxIndex)"
         :step="1"
         color="#068ede95"
         thumb-label="always"
@@ -68,6 +73,20 @@ const {
   playButtonClickedCount
 } = storeToRefs(store);
 
+// The slider always spans at least 7 steps so that a handful of times get
+// spread out along the track instead of being bunched at the left edge.
+// The extra steps past maxIndex are inert (ticks hidden, value clamped).
+const timeSliderIndex = computed({
+  get() {
+    return timeIndex.value;
+  },
+  set(value: number) {
+    if (value > maxIndex.value) {
+      return;
+    }
+    timeIndex.value = value;
+  }
+});
 
 // TODO: Maybe there's a built-in Date function to get this formatting?
 const thumbLabel = computed(() => {
@@ -215,6 +234,18 @@ watch(playingRate, () => {
     // top: -10%;
   }
 
+
+  &.hide-ticks-1 .v-slider-track__tick:nth-last-child(-n + 1),
+  &.hide-ticks-2 .v-slider-track__tick:nth-last-child(-n + 2),
+  &.hide-ticks-3 .v-slider-track__tick:nth-last-child(-n + 3),
+  &.hide-ticks-4 .v-slider-track__tick:nth-last-child(-n + 4),
+  &.hide-ticks-5 .v-slider-track__tick:nth-last-child(-n + 5),
+  &.hide-ticks-6 .v-slider-track__tick:nth-last-child(-n + 6),
+  &.hide-ticks-7 .v-slider-track__tick:nth-last-child(-n + 7)
+  {
+    display: none !important;
+  }
+
   .v-slider {
 
     .v-slider.v-input--horizontal {
@@ -233,6 +264,17 @@ watch(playingRate, () => {
       border-top: 6px solid currentColor;
       bottom: -15px;
     }
+  }
+}
+
+.time-slider.hide-first-last-ticks.v-input--disabled {
+    .v-slider__container {
+      opacity: 100 !important;
+    }
+
+    .v-slider-track__tick--first,
+    .v-slider-track__tick--last {
+      display: none;
   }
 }
 </style>
