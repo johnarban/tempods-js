@@ -59,6 +59,7 @@ onMounted(() => {
 
 .header-warning-text {
   /* empty */
+  color: black;
 }
 
 .header-warning-close {
