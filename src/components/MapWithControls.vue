@@ -1069,5 +1069,10 @@ onMounted(() => {
 }
 
 
+.panel-size-dragging, .panel-size-dragging .handle.vertical-handle {
+  cursor: row-resize !important;
+}
+
+
 @import "@/styles/maplibre-layer-control.css";
 </style>
