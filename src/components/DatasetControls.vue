@@ -240,6 +240,7 @@
             :time-ranges="timeRanges"
             :regions="regions"
             :molecule-ready="moleculeReady"
+            :hidden-molecules="hiddenMolecules"
             :disabled="{ region: regions.length === 0, point: selectionActive === 'point', timeRange: timeRanges.length === 0 }"
             @create="handleDatasetCreated"
           >
@@ -477,6 +478,7 @@ import type { MillisecondRange, TimeRange, UserDataset, UnifiedRegion, MoleculeT
 import type { TimeRangeConfig } from "@/date_time_range_selection/date_time_range_generators";
 import { serializeTempoStore, useTempoStore } from "../stores/app";
 import { MOLECULE_OPTIONS } from "../esri/utils";
+import { HIDDEN_BAD_LAYERS } from "@/datasets/layerData";
 import { atleast1d } from "../utils/atleast1d";
 import { titleBarPredicate } from "../utils/draggable";
 
@@ -518,9 +520,20 @@ const moleculeReady = computed(() => {
   const ready = new Map<string, boolean[] | undefined>();
   MOLECULE_OPTIONS.forEach( v => {
     const layername = `tempo-${v.value}`;
+    if (hiddenMolecules.value.includes(v.value)) return;
     ready.set(v.value,layersReady.value.get(layername)?.ready);
   });
   return ready;
+});
+
+// molecules whose layer is broken and should be hidden rather than flagged
+const hiddenMolecules = computed(() => {
+  return MOLECULE_OPTIONS
+    .map(v => v.value)
+    .filter(mol => {
+      const layername = `tempo-${mol}`;
+      return HIDDEN_BAD_LAYERS.includes(layername) && layersReady.value.get(layername)?.status === 'error';
+    });
 });
 
 const cssVars = computed(() => {

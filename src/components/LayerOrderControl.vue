@@ -119,7 +119,7 @@ import { colorbarOptions } from "@/esri/ImageLayerConfig";
 import { colormapFunction } from "@/colormaps/utils";
 import { useTempoStore } from "@/stores/app";
 import type { LayerErrorType } from "@/types";
-import { layerNames, layerInfo } from "@/datasets/layerData";
+import { layerNames, layerInfo, HIDDEN_BAD_LAYERS } from "@/datasets/layerData";
 import { asthmaColorbar } from "@/datasets/addAsthma";
 import NarrowExpansionPanel from './NarrowExpansionPanel.vue';
 import LandUseLegend from './LandUseLegend.vue';
@@ -158,6 +158,7 @@ const getConnectedItems = (layer: string): string[] => {
 };
 
 
+
 const {
   currentOrder,
   controller
@@ -177,7 +178,8 @@ const displayOrder = computed({
     // Push not ready layers to the bottom, still in order though
     const ready = reversed.filter(id => layerErrorType(id) !== 'error');
     const notReady = reversed.filter(id => layerErrorType(id) === 'error');
-    return [...ready, ...notReady];
+    const notReadyWithoutHidden = notReady.filter(id => !HIDDEN_BAD_LAYERS.includes(id));
+    return [...ready, ...notReadyWithoutHidden];
   },
   set(value: string[]) {
     controller?.setManagedOrder(value.slice().reverse());
@@ -200,11 +202,18 @@ function layerMessage(layerId: string): string | null {
   return msgs && msgs.length > 0 ? msgs.join(' ') : null;
 }
 
+let lastBrokenKey = '';
 watch(layersReady, () => {
   const brokenTempoLayers = Array.from(layersReady.value.entries())
     .filter(([layerId, entry]) => layerId.startsWith('tempo') && entry.status === 'error')
-    .map(([layerId]) => layerId);
-
+    .map(([layerId]) => layerId)
+    .filter(layerId => !HIDDEN_BAD_LAYERS.includes(layerId));
+  
+  // only set the global warning again if we actually have more broken layers to show
+  const key = brokenTempoLayers.slice().sort().join(',');
+  if (key === lastBrokenKey) return; // nothing new; respect a dismissal
+  lastBrokenKey = key;
+  
   if (brokenTempoLayers.length > 0) {
     const names = brokenTempoLayers.map(id => layerNames[id] ?? id).join(', ');
     const fallbackNote = brokenTempoLayers.includes('tempo-no2')

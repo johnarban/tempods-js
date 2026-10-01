@@ -382,7 +382,7 @@ watch(molecule, (newMolecule) => {
   if (map.value) {
     hchoLayer.setVisibility(newMolecule === 'hcho');
     ozoneLayer.setVisibility(newMolecule === 'o3');
-    o3tropLayer.setVisibility(newMolecule === 'o3trop');
+    o3tropLayer.setVisibility(newMolecule === 'o3trop' && !serviceFailed(o3tropLayer.serviceReady.value));
     no2Layer.value?.setVisibility(newMolecule === 'no2');
     // map.value.moveLayer(`tempo-${newMolecule}`, 'tempo-no2');
   }
@@ -426,7 +426,13 @@ watch(() => [
   if (showAdvancedLayers.value) {
     syncLayerReady('tempo-hcho', hchoReady, hchoLayer.status.value);
     syncLayerReady('tempo-o3', ozoneReady, ozoneLayer.status.value);
+    // LayerOrderControl hides this beta layer (HIDDEN_BAD_LAYERS) when it errors
     syncLayerReady('tempo-o3trop', o3tropReady, o3tropLayer.status.value);
+    if (serviceFailed(o3tropReady)) {
+      o3tropLayer.setVisibility(false);
+    } else {
+      o3tropLayer.setVisibility(molecule.value === 'o3trop');
+    }
     syncLayerReady('pop-dens', popReady, popLayer.status.value);
     syncLayerReady('land-use', landUseReady, sentinalLandUseLayer.status.value);
     syncLayerReady('hms-fire', [hmsFire.loading.value], hmsFire.status.value);

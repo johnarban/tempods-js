@@ -111,6 +111,7 @@ interface SelectionComposerProps {
   timeRanges: TimeRange[];
   regions: RectangleSelectionType[];
   moleculeReady?: Map<string, boolean[] | undefined>;
+  hiddenMolecules?: MoleculeType[];
   disabled?: { region?: boolean; timeRange?: boolean; molecule?: boolean };
 }
 
@@ -130,7 +131,9 @@ interface DraftUserDataset {
   molecule?: MoleculeType | null;
 }
 const draftUserDataset = ref<DraftUserDataset>({ region: null, timeRange: null, molecule: null });
-const availableMolecules = computed(() => MOLECULE_OPTIONS.map(o => ({ key: o.value as MoleculeType, title: o.title })));
+const availableMolecules = computed(() => MOLECULE_OPTIONS
+  .filter(o => !props.hiddenMolecules?.includes(o.value))
+  .map(o => ({ key: o.value as MoleculeType, title: o.title })));
 
 const moleculeHint = computed(() => {
   if (!props.moleculeReady) return '';
