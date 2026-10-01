@@ -320,6 +320,7 @@ function addAdvancedLayers(m: Map | null) {
   tryCatch('tempo-o3trop', () => o3tropLayer.addEsriSource(m));
   syncLayerReady('tempo-hcho', hchoLayer.serviceReady.value, hchoLayer.status.value);
   syncLayerReady('tempo-o3', ozoneLayer.serviceReady.value, ozoneLayer.status.value);
+  syncLayerReady('tempo-o3trop', o3tropLayer.serviceReady.value, o3tropLayer.status.value);
   syncLayerReady('pop-dens', popLayer.serviceReady.value, popLayer.status.value);
   syncLayerReady('land-use', sentinalLandUseLayer.serviceReady.value, sentinalLandUseLayer.status.value);
   syncLayerReady('hms-fire', [hmsFire.loading.value], hmsFire.status.value);
@@ -350,6 +351,7 @@ function removeAdvancedLayers(m: Map | null) {
   // asthmaTracts.removeFromMap(m);
   store.clearLayerReady('tempo-hcho');
   store.clearLayerReady('tempo-o3');
+  store.clearLayerReady('tempo-o3trop');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
   store.clearLayerReady('places-asthma-counties');
@@ -424,7 +426,8 @@ watch(() => [
   if (showAdvancedLayers.value) {
     syncLayerReady('tempo-hcho', hchoReady, hchoLayer.status.value);
     syncLayerReady('tempo-o3', ozoneReady, ozoneLayer.status.value);
-    // Keep this beta layer out of the status store so a broken service stays quiet.
+    // LayerOrderControl hides this beta layer (HIDDEN_BAD_LAYERS) when it errors
+    syncLayerReady('tempo-o3trop', o3tropReady, o3tropLayer.status.value);
     if (serviceFailed(o3tropReady)) {
       o3tropLayer.setVisibility(false);
     } else {
@@ -438,6 +441,7 @@ watch(() => [
 
   store.clearLayerReady('tempo-hcho');
   store.clearLayerReady('tempo-o3');
+  store.clearLayerReady('tempo-o3trop');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
   store.clearLayerReady('hms-fire');
