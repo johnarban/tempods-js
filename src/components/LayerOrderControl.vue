@@ -202,12 +202,18 @@ function layerMessage(layerId: string): string | null {
   return msgs && msgs.length > 0 ? msgs.join(' ') : null;
 }
 
+let lastBrokenKey = '';
 watch(layersReady, () => {
   const brokenTempoLayers = Array.from(layersReady.value.entries())
     .filter(([layerId, entry]) => layerId.startsWith('tempo') && entry.status === 'error')
     .map(([layerId]) => layerId)
     .filter(layerId => !HIDDEN_BAD_LAYERS.includes(layerId));
-
+  
+  // only set the global warning again if we actually have more broken layers to show
+  const key = brokenTempoLayers.slice().sort().join(',');
+  if (key === lastBrokenKey) return; // nothing new; respect a dismissal
+  lastBrokenKey = key;
+  
   if (brokenTempoLayers.length > 0) {
     const names = brokenTempoLayers.map(id => layerNames[id] ?? id).join(', ');
     const fallbackNote = brokenTempoLayers.includes('tempo-no2')
