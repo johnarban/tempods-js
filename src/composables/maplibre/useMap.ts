@@ -1,5 +1,5 @@
 import { Ref, onMounted, onUnmounted, shallowRef } from 'vue';
-import M, { AttributionControl } from 'maplibre-gl';
+import M, { AttributionControl, ScaleControl } from 'maplibre-gl';
 import { InitMapOptions, LatLngPair } from '@/types';
 
 
@@ -169,7 +169,10 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
       
     }).addControl(new AttributionControl({
       compact: true,
-    }));
+    })).addControl(new ScaleControl({ // https://maplibre.org/maplibre-gl-js/docs/API/classes/ScaleControl/
+      maxWidth: 100,
+      unit: 'metric',
+    }), 'bottom-right');
     
     _map.on('style.load', setupMap);
     
