@@ -1,10 +1,18 @@
 <template>
-  <div :class="{'dtrs-error-highlight': showErrorForEmpty && empty, 'dtrs-years-picker': true}">
-    <label class="text-subtitle-2 mb-2 d-block">Years 
+  <!-- role="group" goes on this element rather than a new wrapper around the
+       checkboxes, because they are laid out as its direct children. A group
+       may take its name from an element inside it. -->
+  <div
+    :class="{'dtrs-error-highlight': showErrorForEmpty && empty, 'dtrs-years-picker': true}"
+    role="group"
+    aria-labelledby="dtrs-years-label"
+  >
+    <div class="text-subtitle-2 mb-2 d-block">
+      <span id="dtrs-years-label">Years</span>
       <span v-show="showErrorForEmpty && empty" aria-live="polite" style="font-weight: bold;">
         (Select at least 1)
       </span>
-      </label>
+      </div>
     <div v-for="year in possibleYears" :key="year" class="d-inline-block">
       <label class="mr-3" style="text-wrap: nowrap;" :for="`dtrs-year-${year}`">
         <input 

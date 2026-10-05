@@ -26,7 +26,9 @@
       opacity=".8"
     >
       <div class="d-flex flex-column align-center justify-center ga-2">
-        <label class="text-white">Fetching time steps from NASA Earthdata GIS service...</label>
+        <!-- A status message, not a label: it names no control. role="status"
+             so a screen reader hears it when the overlay appears. -->
+        <div class="text-white" role="status">Fetching time steps from NASA Earthdata GIS service...</div>
         <v-progress-circular
           :size="80"
           :width="12"

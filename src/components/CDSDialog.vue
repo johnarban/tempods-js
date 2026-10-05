@@ -15,7 +15,6 @@
           :title="displayedShortTitle"
           class="cds-dialog-button"
           @click="modelValue = true"
-          @keyup.enter="modelValue = true"
           tabindex="0"
           >
           Open {{ displayedShortTitle }}

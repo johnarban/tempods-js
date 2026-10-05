@@ -226,6 +226,10 @@ export interface SelectionHandler<EventType, SelectionInfo> {
   onMouseup?: (event: EventType) => void;
   onMousedown?: (event: EventType) => void;
   onMousemove?: (event: EventType) => void;
+  // Keyboard equivalent of the mouse gesture, for selections that have one.
+  // It is a plain DOM KeyboardEvent rather than a map event because
+  // baseUseSelection binds it to the canvas directly.
+  onKeydown?: (event: KeyboardEvent) => void;
 }
 
 export interface UseSelectionOptions<MapType, EventType, SelectionInfo> {

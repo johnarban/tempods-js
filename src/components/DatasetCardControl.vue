@@ -235,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
 import type { UserDataset, MoleculeType, UnifiedRegion } from "../types";
@@ -287,6 +287,25 @@ function datasetFailed(dataset: UserDataset): boolean {
 
 /** per-dataset graph dialog state, keyed by dataset id */
 const openGraphs = ref<Record<string, boolean>>({});
+
+// The graph opens from a button inside its dataset's card, and closing it left
+// focus at the top of the page because the button it came from is inside the
+// action row, which collapses. Handing focus back to the card the graph belongs
+// to is the useful landing place, and focusCardId is what the cards watch.
+//
+// These dialogs are :modal="false", so any number of them can be open at once.
+// Watching the list of open ids and taking whichever one has just dropped out
+// of it means closing one of several still returns focus to the right card.
+const openGraphIds = computed(() => {
+  return Object.keys(openGraphs.value).filter(id => openGraphs.value[id]);
+});
+
+watch(openGraphIds, (nowOpen: string[], wasOpen: string[]) => {
+  const justClosed = wasOpen.find(id => !nowOpen.includes(id));
+  if (justClosed !== undefined) {
+    store.focusCardId = justClosed;
+  }
+});
 </script>
 
 <style scoped lang="less">

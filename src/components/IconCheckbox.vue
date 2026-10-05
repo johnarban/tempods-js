@@ -8,13 +8,30 @@
     class="icon-checkbox"
   >
     <template #label>
-      <span class="pl-2 icon-checkbox-label" @click="() => update()">
+      <!--
+        No click handler needed: Vuetify wraps this slot in a <label for>
+        pointing at the real input, so clicking the text toggles natively.
+      -->
+      <span class="pl-2 icon-checkbox-label">
         {{ label }}
       </span>
     </template>
-    <template #input="{ model }">
-      <!-- Using <component :is="..."/> didn't work with v-icon for some reason -->
-      <span class="icon-checkbox-control" @click="model.value = !model.value">
+    <template #input="{ model, inputNode }">
+      <!--
+        This slot REPLACES Vuetify's input rather than decorating it, and the
+        replacement used to be a bare <span> with a click handler. That left no
+        real checkbox anywhere: the control was not a tab stop, Space did
+        nothing, and there was no checked state for a screen reader to read, so
+        keyboard users could not reach these toggles at all.
+
+        Rendering inputNode puts Vuetify's own <input type="checkbox"> back. It
+        is invisible and covers the control (opacity 0, absolutely positioned
+        at 100% x 100%), so the icon still shows, while the tab stop, Space,
+        aria-checked, the label's for/id association and the app's focus ring
+        all come back with it. The icon no longer needs a click handler of its
+        own, because the input is on top of it.
+      -->
+      <span class="icon-checkbox-control">
       <font-awesome-icon
           v-if="(model.value ? onIcon : offIcon)?.startsWith('fa-') && !hideIcon"
           :icon="model.value ? onIcon : offIcon"
@@ -29,6 +46,7 @@
       </v-icon>
       <div v-else :class="['icon-checkbox-circle-icon', model.value ? '' : 'disabled']" :style="{'--color':onColor}"></div>
     </span>
+      <component :is="inputNode" />
     </template>
   </v-checkbox>
 </template>
@@ -51,19 +69,6 @@ const props = withDefaults(defineProps<IconCheckboxProps>(), {
   offColor: "gray",
   hideIcon: false,
 });
-
-function update() {
-  if (typeof modelValue.value === "boolean") {
-    modelValue.value = !modelValue.value;
-  } else { // it's an array
-    const index = modelValue.value.indexOf(props.value);
-    if (index >= 0) {
-      modelValue.value = modelValue.value.slice(0, index).concat(modelValue.value.slice(index + 1));
-    } else {
-      modelValue.value = [...modelValue.value, props.value];
-    }
-  }
-}
 
 const isSelected = computed(() => {
   if (typeof modelValue.value === "boolean") {

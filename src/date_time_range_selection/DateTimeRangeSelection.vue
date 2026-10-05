@@ -28,8 +28,12 @@
                 @internal-model-change="handleSingleDateChange"
                 :allowed-dates="allowedDates"
                 :formats="{input: formatDateDisplay, preview: formatDateDisplay}"
-                :input-atters="{ clearable: false }"
+                :input-attrs="{ clearable: false }"
                 :teleport="true"
+                :arrow-navigation="true"
+                @open="singleDateKeyboard.onOpen"
+                @update-month-year="singleDateKeyboard.onMonthChange"
+                @closed="singleDateKeyboard.onClosed"
                 dark
                 :year-range="datePickerYearRange"
                 :week-start="0"
@@ -37,10 +41,21 @@
                 :time-config="{ enableTimePicker: false }"
               >
               <template #action-buttons>
+                <!--
+                  This slot REPLACES the picker's own action buttons, Cancel
+                  included, so overriding it to add Latest left Escape as the
+                  only way out with nothing on screen saying so.
+                -->
+                <button
+                  class="dp__action_button dp__action-cancel"
+                  type="button"
+                  @click="() => singleDateCalendar?.closeMenu()"
+                >
+                  Cancel
+                </button>
                 <button
                   class="dp__action_button dp__action-latest"
                   @click="() => allowedDates ? handleSingleDateChange(allowedDates[allowedDates.length - 1]) : null"
-                  @keyup.enter="() => allowedDates ? handleSingleDateChange(allowedDates[allowedDates.length - 1]) : null"
                   :disabled="!allowedDates"
                   elevation="0"
                   size="sm"
@@ -61,8 +76,12 @@
                 @internal-model-change="handleSingleDateChange"
                 :allowed-dates="allowedDates"
                 :formats="{input: formatDateDisplay, preview: formatDateDisplay}"
-                :input-atters="{ clearable: false }"
+                :input-attrs="{ clearable: false }"
                 :teleport="true"
+                :arrow-navigation="true"
+                @open="singleDateKeyboard.onOpen"
+                @update-month-year="singleDateKeyboard.onMonthChange"
+                @closed="singleDateKeyboard.onClosed"
                 dark
                 :year-range="datePickerYearRange"
                 :week-start="0"
@@ -70,10 +89,21 @@
                 :time-config="{ enableTimePicker: false }"
               >
               <template #action-buttons>
+                <!--
+                  This slot REPLACES the picker's own action buttons, Cancel
+                  included, so overriding it to add Latest left Escape as the
+                  only way out with nothing on screen saying so.
+                -->
+                <button
+                  class="dp__action_button dp__action-cancel"
+                  type="button"
+                  @click="() => singleDateCalendar?.closeMenu()"
+                >
+                  Cancel
+                </button>
                 <button
                   class="dp__action_button dp__action-latest"
                   @click="() => allowedDates ? handleSingleDateChange(allowedDates[allowedDates.length - 1]) : null"
-                  @keyup.enter="() => allowedDates ? handleSingleDateChange(allowedDates[allowedDates.length - 1]) : null"
                   :disabled="!allowedDates"
                   elevation="0"
                   size="sm"
@@ -292,6 +322,7 @@
 // no unused vars
 // === IMPORTS ===
 import { watch, computed, ref, onMounted, useTemplateRef } from 'vue';
+import { useDatePickerKeyboard } from '@/composables/useDatePickerKeyboard';
 import type { MillisecondRange } from '../types/datetime';
 import DateRangePicker from './DateRangePicker.vue';
 import DaysPicker from './DaysPicker.vue';
@@ -329,6 +360,8 @@ const currentDateRef = ref(props.currentDate);
 
 // === REFS ===
 const singleDateCalendar = ref();
+// Shared with the map view picker and the two range pickers.
+const singleDateKeyboard = useDatePickerKeyboard(singleDateCalendar);
 // === PICKER STATE ===
 // Direct date objects for date pickers - no unnecessary timestamp conversion
 const timeSelectionRadio = ref<TimeRangeCreationMode | 'tracked'>('tracked');
@@ -606,7 +639,7 @@ watch(timeRangeConfig, () => {
 function handleSingleDateChange(value: Date) {
   if (value && value.getTime() !== singleDateObj.value?.getTime()) {
     singleDateObj.value = value;
-    singleDateCalendar.value?.closeMenu();
+    singleDateKeyboard.closeAfterSelection();
   }
 }
 

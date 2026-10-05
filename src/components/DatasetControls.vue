@@ -69,7 +69,7 @@
                 {{ selectionActive === 'rectangle' ? "Cancel" : "New Region" }}
               </v-btn>
               <popup-info-button
-                info-text="To select a region, click and drag a rectangle across the map. "
+                info-html="<p>To select a region, click and drag a rectangle across the map.</p><p class='mt-2'>From the keyboard: this button moves focus to the map, where the arrow keys pan and the <kbd>+</kbd> and <kbd>-</kbd> keys zoom. Press <kbd>Enter</kbd> to make a region of the area shown on the map, or <kbd>Esc</kbd> to stop selecting.</p>"
                 :width="popupCardWidth"
               >
               </popup-info-button>
@@ -110,11 +110,38 @@
                 hide-details
               >
               </v-checkbox>
-              <v-list>
+              <!--
+                v-list would give this role="list", but the cards inside it are
+                buttons rather than list items (see below), and a list whose
+                children are not listitems announces as empty. role="group"
+                with a name keeps the cards bracketed as one thing without
+                claiming they are a list.
+              -->
+              <v-list role="group" aria-label="My regions">
+                <!--
+                  Inside a v-list, Vuetify gives every clickable v-list-item
+                  tabindex="-2" and expects the list to move focus around with
+                  the arrow keys. That left only the first card reachable: Tab
+                  landed on card 1's body, then went straight to the pencil and
+                  trash buttons of every card in turn, skipping all the other
+                  card bodies. tabindex="0" makes each card its own tab stop;
+                  Enter and Space already work, because VListItem turns them
+                  into a click itself. role="button" replaces the listitem role
+                  Vuetify would otherwise apply, which said nothing about the
+                  card being activatable.
+
+                  Keyed by region.id, not by index: the ids are uuids from
+                  createRegion, so deleting a region from the middle of the
+                  list no longer makes Vue reuse one card's DOM for the next
+                  region along.
+                -->
                 <v-list-item
-                  v-for="(region, index) in regions"
+                  v-for="(region, index) in regionsNewestFirst"
                   :class="` my-2 rounded-lg region-list-item region-list-item-${index}`"
-                  :key="index"
+                  :key="region.id"
+                  :data-card-id="region.id"
+                  tabindex="0"
+                  role="button"
                   :title="region.name"
                   :style="{ 'background-color': region.color, color: contrastingColor(region.color) }"
                   @click.stop="() => focusRegion = region"
@@ -147,6 +174,18 @@
                       :text="store.regionHasDatasets(region as UnifiedRegionType) ? 'Cannot delete if used in a dataset' : 'Delete'"
                       location="left"
                     >
+                      <!--
+                        The wrapper div is here because a disabled button fires
+                        no mouse events, so the tooltip explaining why it is
+                        disabled would never show on hover. But Vuetify binds
+                        the activator's focus handler as a plain focus
+                        listener, which does not bubble, so focusing the button
+                        inside the wrapper never opened the tooltip and a
+                        keyboard user got nothing. Forwarding focus and blur to
+                        the handlers on the wrapper's props fixes that, and
+                        passing aria-describedby down puts the description on
+                        the thing a screen reader actually lands on.
+                      -->
                       <template #activator="{ props }">
                         <div class="d-flex" v-bind="props">
                           <v-btn
@@ -156,6 +195,9 @@
                             size="small"
                             density="compact"
                             :disabled="store.regionHasDatasets(region as UnifiedRegionType)"
+                            :aria-describedby="props['aria-describedby']"
+                            @focus="props.onFocus?.($event)"
+                            @blur="props.onBlur?.($event)"
                             @click.stop="(event: MouseEvent | KeyboardEvent) => {
                                 store.deleteRegion(region as UnifiedRegionType);
                             }"
@@ -288,14 +330,17 @@
                   Uncheck All
                 </v-btn>
               </div>
-              <div class="d-flex flex-column align-items-center justify-space-between ga-2" :class="{'flex-column-reverse': allDatasetSelection }">
-                <v-btn 
-                v-if="datasets.length > 1"
-                :disabled="datasets.length === 0 || !datasets.every(d => d.samples || d.plotlyDatasets)"
-                :color="allDatasetSelection ? '#333': '#ffcc33'" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
-                {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
-              </v-btn>
-              <v-btn 
+              <!--
+                These two used to sit in the DOM in the other order, with
+                flex-column-reverse flipping them once a selection was under
+                way. That put "Graph Selected Datasets" on top on screen while
+                Tab still reached it second, so the DOM order is now the
+                displayed order and the reverse is gone. "Graph Selected
+                Datasets" only renders during a selection, so nothing changes
+                when it is the other button on its own.
+              -->
+              <div class="d-flex flex-column align-items-center justify-space-between ga-2">
+              <v-btn
               v-if="datasets.length > 1 && allDatasetSelection"
               :color="accentColor2"
               :disabled="selectedDatasets.length == 0"
@@ -304,6 +349,12 @@
               @click.stop="showMultiPlot = true">
               Graph Selected Datasets
             </v-btn>
+                <v-btn
+                v-if="datasets.length > 1"
+                :disabled="datasets.length === 0 || !datasets.every(d => d.samples || d.plotlyDatasets)"
+                :color="allDatasetSelection ? '#333': '#ffcc33'" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
+                {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
+              </v-btn>
           </div>
         </template>
       </v-expansion-panel>
@@ -470,7 +521,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, ref, shallowRef, watch, type Ref } from "vue";
 import { storeToRefs } from "pinia";
 import { v4 } from "uuid";
 
@@ -509,6 +560,7 @@ const {
   uniqueDays,
   selectionActive,
   focusRegion,
+  focusCardId,
   showSamplingPreviewMarkers,
   regionOpacity,
   regionVisibility,
@@ -578,6 +630,7 @@ const showAggregationDialog = ref(false);
 function openAggregationDialog(selection: UserDataset) {
   aggregationDataset.value = selection;
   showAggregationDialog.value = true;
+  aggregationReturnCardId.value = selection.id;
 }
 function handleAggregationSaved(aggregatedSelection: UserDataset) {
   const n = datasets.value
@@ -598,8 +651,10 @@ function handleAggregationSaved(aggregatedSelection: UserDataset) {
     }
   }
   store.addDataset(aggregatedSelection, false); // no need to fetch anything
-  showAggregationDialog.value = false;
-  aggregationDataset.value = null;
+  // Saving deliberately leaves the dialog open, so the aggregation that was
+  // just made stays on screen and another can be made without reopening it.
+  // It is closed by its own title bar X or by Cancel. The other half of this is
+  // in DataFoldingAndBinning's saveFolding, which also used to close it.
 }
 
 import { RequestStats, FetchOptions } from "@/esri/services/TempoDataService";
@@ -612,8 +667,68 @@ function progressLogger(dataset: UserDataset): FetchOptions["onProgress"] {
 function handleDatasetCreated(dataset: UserDataset) {
   dataset.name = `Dataset ${datasets.value.length + 1}`; // give it a default name
   store.addDataset(dataset, true, progressLogger(dataset));
+  focusCardId.value = dataset.id;
   createDatasetActive.value = false;
 }
+
+// Newest first, so a card you have just made sits next to the button that made
+// it instead of at the far end of the list. With the cards appended, the newest
+// region and the "New Region" button were 43 tab stops apart - three per card -
+// and the panel scrolled the button out of sight when the new card took focus.
+//
+// This reverses a copy. The store's own order is what drives the map layers, so
+// it is left alone.
+const regionsNewestFirst = computed(() => regions.value.slice().reverse());
+
+// Creating a region, time range or dataset used to leave focus nowhere useful:
+// on the map for a region, and on a form that was then collapsed for the other
+// two, which drops focus to <body>. Moving it to the card that was just made
+// says what happened - a screen reader reads out the new card's name - and puts
+// the rename button one Tab away, which matters because the app asks people to
+// rename their cards.
+//
+// The card is found by attribute rather than by ref because the three card
+// types live in three different components. If it is not there - the panel is
+// closed, say - focus is left alone rather than thrown somewhere arbitrary.
+watch(focusCardId, (id: string | null) => {
+  if (id === null) {
+    return;
+  }
+  focusCardId.value = null;
+  nextTick(() => {
+    document.querySelector<HTMLElement>(`[data-card-id="${id}"]`)?.focus();
+  });
+});
+
+// These dialogs are opened from a button on a card, and that button goes away
+// with the card's row while the dialog is up, so closing the dialog left focus
+// at the very top of the page. Each one remembers which card opened it and
+// hands focus back through focusCardId above.
+//
+// This watches the dialog's own open flag rather than hooking its save and
+// cancel handlers, because that is the one thing every way out has in common -
+// saving, cancelling, Escape, and clicking the backdrop all end with the flag
+// false.
+//
+// The three rename dialogs are modal and so mutually exclusive, and share one
+// ref. The table and aggregation dialogs are not: both are persistent with no
+// scrim, which leaves the panel behind them usable, so a rename can be started
+// while one of them is up. They get their own refs so the two cannot overwrite
+// each other.
+const dialogReturnCardId = ref<string | null>(null);
+const tableReturnCardId = ref<string | null>(null);
+const aggregationReturnCardId = ref<string | null>(null);
+
+function returnFocusWhenClosed(isOpen: Ref<boolean>, returnTo: Ref<string | null>) {
+  watch(isOpen, (open: boolean, wasOpen: boolean) => {
+    if (wasOpen && !open) {
+      focusCardId.value = returnTo.value;
+      returnTo.value = null;
+    }
+  });
+}
+
+// (the calls are below, once all the flags have been declared)
 
 function retryDataset(dataset: UserDataset) {
   store.fetchDataForDataset(dataset, progressLogger(dataset));
@@ -624,10 +739,16 @@ import { contrastingColor } from "@/utils/color";
 import RegionEditor from "./RegionEditor.vue";
 const showDatasetEditor = ref(false);
 const datasetEditorNameOnly = ref(false);
+returnFocusWhenClosed(showEditRegionNameDialog, dialogReturnCardId);
+returnFocusWhenClosed(showEditTimeRangeNameDialog, dialogReturnCardId);
+returnFocusWhenClosed(showDatasetEditor, dialogReturnCardId);
+returnFocusWhenClosed(showAggregationDialog, aggregationReturnCardId);
+
 function handleEditDataset(dataset: UserDataset, nameOnly = false) {
   datasetEditorNameOnly.value = nameOnly;
   currentlyEditingDataset.value = dataset;
   showDatasetEditor.value = true;
+  dialogReturnCardId.value = dataset.id;
 }
 
 function removeDataset(dataset: UserDataset) {
@@ -661,6 +782,7 @@ function handleDateTimeRangeSelectionChange(
     config: config,
   };
   store.addTimeRange(tr);
+  focusCardId.value = tr.id;
 
   createTimeRangeActive.value = false;
   // console.log(`Registered ${tr.name}: ${tr.description}`);
@@ -680,6 +802,7 @@ function editRegionName(region: UnifiedRegionType) {
   regionBeingEdited.value = region;
   // Open dialog for renaming
   showEditRegionNameDialog.value = true;
+  dialogReturnCardId.value = region.id;
 }
 
 function editTimeRangeName(timeRange: TimeRange) {
@@ -693,6 +816,7 @@ function editTimeRangeName(timeRange: TimeRange) {
   timeRangeBeingEdited.value = timeRange;
   // Open dialog for renaming
   showEditTimeRangeNameDialog.value = true;
+  dialogReturnCardId.value = timeRange.id;
 }
 
 function _graphTitle(dataset: UserDataset): string {
@@ -733,8 +857,13 @@ const showUserDatasetTable = ref(false);
 watch(tableSelection, (newVal) => {
   if (newVal) {
     showUserDatasetTable.value = true;
+    // Remember the card to go back to. It has to be captured here rather than
+    // read on close, because closing the table nulls tableSelection.
+    tableReturnCardId.value = newVal.id;
   }
 });
+
+returnFocusWhenClosed(showUserDatasetTable, tableReturnCardId);
 
 
 /** handle plot click should set the time and molecule and zoom into the region */

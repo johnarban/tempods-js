@@ -113,8 +113,17 @@ export default defineComponent({
       role="alert"
       aria-live="assertive"
       timeout="-1"
+      @keydown.esc="closeDialog"
       >
-      <span ref="snackbarMessage" tabindex="0" @keydown.esc="closeDialog">
+      <!--
+        Esc moved up to the snackbar so it closes from anywhere inside it,
+        including the Close button, rather than only while this span has focus.
+        The span is left as a focus target for the message - it is focused in
+        code so the alert gets read out - but tabindex="-1" rather than 0,
+        because it is not something to stop on when tabbing: it does nothing
+        when activated, and the Close button right after it is the control.
+      -->
+      <span ref="snackbarMessage" tabindex="-1">
       <slot> {{ msg }} </slot>
       </span>
 

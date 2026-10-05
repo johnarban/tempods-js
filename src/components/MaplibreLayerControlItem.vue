@@ -41,7 +41,7 @@
         class="mlc-layer-opacity-slider"
         :min="0"
         :max="1"
-        :step="0.01"
+        :step="0.05"
         title="Adjust layer opacity"
         color="primary"
         hide-details
@@ -149,10 +149,23 @@ watch(() => [props.map, props.layerId],
     margin-left: 5px;
   }
 
-  .v-slider {
-    width: 70px;
-    flex-grow: 1;
-    flex-shrink: 0;
+  /* One fixed length for every slider, so they line up across the cards, and
+     neither growing nor shrinking -- the label wraps into whatever is left
+     instead of the slider being squeezed.
+     .v-input.v-slider, not .v-slider: a Vuetify slider carries both classes,
+     and the `.v-input { flex-grow: 0 }` rule below has equal specificity but
+     comes later, so it was quietly cancelling a bare `.v-slider` rule. */
+  .v-input.v-slider {
+    flex: 0 0 60px;
+  }
+
+  /* Lets the label give up width and wrap rather than holding the row open. */
+  .mlc-layer-item-checkbox {
+    min-width: 0;
+  }
+
+  :deep(.v-checkbox .v-label) {
+    white-space: normal;
   }
   
   .v-input {

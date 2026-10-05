@@ -26,7 +26,14 @@
         </div>
       
         <v-expand-transition>
-          <div v-if="showDetails" @click="onShowClick">
+          <!--
+            No @click here any more. Clicking the body of the details was a
+            second way to collapse them, but a block of text is not a control:
+            it was not focusable and nothing announced it as clickable. The
+            button above and the chevron in TimeRangesControl both still
+            toggle, and both are reachable from the keyboard.
+          -->
+          <div v-if="showDetails">
             <!-- Date Range -->
             <div class="time-range-config-item">
               <strong>Date Range:</strong> 
@@ -55,9 +62,20 @@
           </div>
         </v-expand-transition>
         <v-expand-transition>
-          <div class="time-range-show-details" v-if="isHovering" @click="onShowClick">
+          <!--
+            This says "click to..." so it is a button, not a div: as a div it
+            was not focusable, had no keyboard path and announced as plain
+            text. A real <button> gets Enter and Space from the browser.
+          -->
+          <button
+            type="button"
+            class="time-range-show-details"
+            v-if="isHovering"
+            :aria-expanded="showDetails"
+            @click="onShowClick"
+          >
             Click to {{ showDetails ? 'hide' : 'show' }} details
-          </div>
+          </button>
         </v-expand-transition>
         
         
@@ -118,5 +136,16 @@ watch(() => props.show, (newVal) => {
   font-size: 0.7em;
   background-color: cadetblue;
   border-radius: 4px;
+  /* It is a <button> now, so undo the chrome a button brings and keep it
+     looking like the inline text it was. The focus ring is left to the global
+     :focus-visible rule. */
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: inherit;
+  cursor: pointer;
 }
 </style>

@@ -68,6 +68,7 @@
             ref="middle-handle"
             aria-label="Resize map"
             role="separator"
+            tabindex="0"
           ></div>
         </template>
       </v-tooltip>
@@ -149,6 +150,7 @@ const {
   regionsCreatedCount,
   maxSampleCount,
   focusRegion,
+  focusCardId,
   initState,
   homeState,
   showFieldOfRegard,
@@ -745,6 +747,10 @@ watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   const newRegion = createRegion(info, "rectangle");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   store.addRegion(newRegion as any);
+  // Hand the new region's card the focus. Drawing a region left focus on the
+  // map, a long way in the tab order from the regions panel, with nothing to
+  // say a region had been made; DatasetControls picks this up.
+  focusCardId.value = newRegion.id;
   rectangleSelectionActive.value = false;
   
   // do not permit editing a region on a selection
@@ -759,9 +765,10 @@ watch(pointInfo, (info: PointSelectionInfo | null) => {
     pointSelectionActive.value = false;
     return;
   }
-  const newRegion = createRegion(info, "point"); 
+  const newRegion = createRegion(info, "point");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   store.addRegion(newRegion as any);
+  focusCardId.value = newRegion.id;
   pointSelectionActive.value = false;
 });
 
@@ -894,6 +901,12 @@ function updateSizes(panelDefault: boolean = false, datasetsDefault: boolean = f
   setBasis(layers, layersWidth);
 }
 
+// Shared by the drag and keyboard paths so they cannot drift apart.
+const MIN_MAP_HEIGHT_PX = 250;
+// How far one arrow press moves the handle: enough to make progress without
+// holding the key, small enough to land on a height you wanted.
+const KEYBOARD_RESIZE_STEP_PX = 24;
+
 const handle = useTemplateRef<HTMLElement>("middle-handle");
 
 onMounted(() => {
@@ -906,8 +919,7 @@ onMounted(() => {
 
     const onLeftMove = (event: PointerEvent) => {
       const dx = event.clientY - startMousePos;
-      const minSize = 250; // Minimum width for the left panel
-      const newSize = Math.max(minSize, startPanelSize + dx);
+      const newSize = Math.max(MIN_MAP_HEIGHT_PX, startPanelSize + dx);
       setBasis(panel, newSize);
     };
 
@@ -920,6 +932,30 @@ onMounted(() => {
       handle: handleValue,
       onMove: onLeftMove,
       initialEventHandler: initialLeftHandler,
+    });
+
+    // This handle is role="separator" with tabindex="0", i.e. a splitter, so it
+    // needs the arrow keys: dragging is otherwise the only way to use it. Down
+    // grows the map, matching the drag, and Home restores the starting height.
+    // preventDefault stops the page scrolling instead.
+    handleValue.addEventListener("keydown", (event: KeyboardEvent) => {
+      let size: number | null = null;
+      if (event.key === "ArrowDown") {
+        size = getBasis(panel) + KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "ArrowUp") {
+        size = getBasis(panel) - KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "Home") {
+        // Clearing the inline basis hands the height back to the stylesheet's
+        // flex-basis: 50%, rather than guessing a pixel equivalent for it.
+        event.preventDefault();
+        panel.style.flexBasis = "";
+        return;
+      }
+      if (size === null) {
+        return;
+      }
+      event.preventDefault();
+      setBasis(panel, Math.max(MIN_MAP_HEIGHT_PX, size));
     });
 
   }
@@ -950,6 +986,44 @@ onMounted(() => {
 
   .map-contents {
     flex-basis: 50%;
+
+    // The map was sized to the full height of the card while also sitting below
+    // the 48px toolbar, so the card's contents ran exactly one toolbar past its
+    // own box -- measured: client 458, scroll 506. A v-card's overflow: hidden
+    // hid that, at the cost of leaving the card scrollable: tabbing to the map
+    // canvas made the browser scroll the card to bring it into view, which was
+    // what pushed the toolbar out of sight. Laying the card out as a column and
+    // giving the map whatever is left removes the overflow, so nothing needs to
+    // scroll and nothing gets cut off. `clip` then keeps it that way, since it
+    // clips like `hidden` but creates no scroll container.
+    display: flex;
+    flex-direction: column;
+    overflow: clip;
+
+    .tempo-map {
+      flex: 1 1 auto;
+      min-height: 0;
+      height: auto;
+    }
+  }
+
+  // MapLibre keeps tabindex="0" on its canvas so the arrow keys can pan the
+  // map. Its own focus ring is no use though: the canvas fills the card, so the
+  // ring lands on edges that are clipped and it reads as nothing happening.
+  // This draws the indicator just inside the map, where nothing can clip it, and
+  // reads as "the map itself is focused". :has() rather than :focus-within
+  // because the zoom and home buttons live inside .maplibregl-map too and
+  // should keep their own rings.
+  .maplibregl-map:has(canvas:focus-visible)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    box-shadow:
+      inset 0 0 0 4px white,
+      inset 0 0 0 12px #0b5cb3,
+      inset 0 0 0 16px white;
   }
 
   .location-and-sharing {

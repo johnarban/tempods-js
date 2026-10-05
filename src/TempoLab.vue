@@ -96,6 +96,7 @@
             ref="left-handle"
             aria-label="Resize left/middle"
             role="separator"
+            tabindex="0"
           ></div>
         </template>
       </v-tooltip>
@@ -114,6 +115,7 @@
             ref="right-handle"
             aria-label="Resize middle/right"
             role="separator"
+            tabindex="0"
           ></div>
         </template>
       </v-tooltip>
@@ -235,6 +237,9 @@ const HANDLE_SIZE_PX = 4;
 const DEFAULT_PANEL_WIDTH_PX = 300;
 const MIN_PANEL_WIDTH_PX = 250;
 const PLACEHOLDER_WIDTH_PX = 40;
+// How far one arrow press moves a resize handle. Big enough to make progress
+// without holding the key down, small enough to land on a size you wanted.
+const KEYBOARD_RESIZE_STEP_PX = 24;
 const cssVars = computed(() => {
   return {
     "--accent-color": accentColor.value,
@@ -375,6 +380,27 @@ onMounted(() => {
       initialEventHandler: initialLeftHandler,
     });
 
+    // The handles are role="separator" with tabindex="0", i.e. splitters, so
+    // the arrow keys have to resize: dragging is the only way to work them
+    // otherwise. Left/Right match the drag direction, and Home snaps back to
+    // the default width. preventDefault stops the page scrolling instead.
+    left.addEventListener("keydown", (event: KeyboardEvent) => {
+      const minLeft = layerControlsOpen.value ? DEFAULT_PANEL_WIDTH_PX : PLACEHOLDER_WIDTH_PX;
+      let size: number | null = null;
+      if (event.key === "ArrowRight") {
+        size = getBasis(leftPanel) + KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "ArrowLeft") {
+        size = getBasis(leftPanel) - KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "Home") {
+        size = DEFAULT_PANEL_WIDTH_PX;
+      }
+      if (size === null) {
+        return;
+      }
+      event.preventDefault();
+      setBasis(leftPanel, Math.max(minLeft, size));
+    });
+
   }
 
   const right = rightHandle.value;
@@ -400,6 +426,25 @@ onMounted(() => {
       onMove: onRightMove,
       initialEventHandler: initialRightHandler,
     });
+
+    // Mirrored: this panel grows leftwards, so ArrowLeft widens it, matching
+    // what dragging the same handle does.
+    right.addEventListener("keydown", (event: KeyboardEvent) => {
+      const minRight = datasetControlsOpen.value ? DEFAULT_PANEL_WIDTH_PX : PLACEHOLDER_WIDTH_PX;
+      let size: number | null = null;
+      if (event.key === "ArrowLeft") {
+        size = getBasis(rightPanel) + KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "ArrowRight") {
+        size = getBasis(rightPanel) - KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "Home") {
+        size = DEFAULT_PANEL_WIDTH_PX;
+      }
+      if (size === null) {
+        return;
+      }
+      event.preventDefault();
+      setBasis(rightPanel, Math.max(minRight, size));
+    });
   }
 
   window.addEventListener("resize", () => {
@@ -412,6 +457,20 @@ onMounted(() => {
       saveStateToLocalStorage();
     }
   });
+
+  // Browsers match :focus-visible on text fields even for a plain click, so the
+  // focus ring needs this class to stay keyboard-only there (see the
+  // body.keyboard-focus-only rules in the style block below). Only Tab counts as
+  // moving focus by keyboard - typing in an already-focused field shouldn't
+  // retroactively give it a ring.
+  document.addEventListener("keydown", (event: KeyboardEvent) => {
+    if (event.key === "Tab") {
+      document.body.classList.add("keyboard-focus-only");
+    }
+  });
+  const clearKeyboardFocusOnly = () => document.body.classList.remove("keyboard-focus-only");
+  document.addEventListener("mousedown", clearKeyboardFocusOnly);
+  document.addEventListener("touchstart", clearKeyboardFocusOnly);
 
   _saveStateInterval = setInterval(() => {
     if (!useLocalStorage.value || ignoreCache) {
@@ -483,6 +542,66 @@ html, body {
 
 body {
   font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
+// "Oreo" focus indicator: a white double outline sandwiched against a black
+// shadow so it stays visible over any background.
+// From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/)
+// & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/).
+// Vuetify hides a checkbox's real <input>, so the ring has to go on the
+// wrapper that is actually visible. A radio does the same (measured: the
+// focused <input type="radio"> is 36x36 at opacity 0, absolutely positioned
+// over a visible wrapper of the same size), and so does a v-select: tabbing to
+// the timezone dropdown focuses an input sitting at opacity 0, so a ring drawn
+// on it is invisible however it is styled. .v-field is the box you can see.
+// Two containers are excluded because their framework focuses them itself on
+// open, and a programmatic focus matches :focus-visible -- so the ring lands on
+// a box you can't actually operate:
+//   .v-overlay__content  VDialog does tabindex="-1" + contentEl.focus(); for
+//                        `<v-dialog width="50%">` that box is half the viewport.
+//   .shepherd-element    Shepherd focuses the step <dialog>, which carries the
+//                        step's aria-labelledby/aria-describedby. Keeping that
+//                        focus is what makes a screen reader read the step text
+//                        out on arrival, so only the ring is suppressed.
+// .v-overlay__content matches tempo-lite and planet-parade.
+// .v-btn is listed on its own because Vuetify's elevation-N utilities set
+// box-shadow with !important too, and at equal specificity they'd win the halo.
+:focus-visible:not(.v-overlay__content, .shepherd-element),
+.v-btn:focus-visible,
+.v-checkbox .v-selection-control__input:has(:focus-visible),
+.v-radio .v-selection-control__input:has(:focus-visible),
+.v-select .v-field:has(input:focus-visible) {
+  outline: 9px double white !important;
+  box-shadow: 0 0 0 8px #0b5cb3 !important;
+  border-radius: .125rem;
+}
+
+// Vuetify animates box-shadow on .v-btn:
+//   transition-property: box-shadow, transform, opacity, background;  .28s
+// The focus ring above IS a box-shadow, so on blur it doesn't disappear -- it
+// interpolates to the button's elevation shadow over 280ms, shrinking and
+// darkening on the way out (measured: 8px #0b5cb3 -> 7px -> 1.5px -> settled).
+// That's the halo left behind on the button you just tabbed away from. Plain
+// <button>s and links have transition-duration 0s, which is why it only shows
+// on v-btns. Taking box-shadow out of the list makes the ring vanish on blur.
+// Cost: elevation changes on hover/press are now instant instead of eased.
+.v-btn {
+  transition-property: transform, opacity, background;
+}
+
+// :focus-visible's browser heuristic carves out text inputs: unlike buttons,
+// they match even when focused by a plain click or tap (you need to see where
+// you're typing). Chrome extends that to <select> and to focusable divs like
+// Vuetify's slider thumb. .keyboard-focus-only (toggled in onMounted above,
+// tracking Tab presses vs mouse/touch) undoes those carve-outs so these ring on
+// keyboard focus only, like everything else.
+body:not(.keyboard-focus-only) input:focus-visible,
+body:not(.keyboard-focus-only) textarea:focus-visible,
+body:not(.keyboard-focus-only) select:focus-visible,
+body:not(.keyboard-focus-only) .v-select .v-field:has(input:focus-visible),
+body:not(.keyboard-focus-only) .v-slider-thumb:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 #app {
@@ -640,11 +759,6 @@ body {
 
   .progress-dot:hover {
     background-color: rgba(255, 255, 255, 0.5);
-  }
-
-  .progress-dot:focus-visible {
-    outline: 1px solid var(--smithsonian-yellow);
-    outline-offset: 2px;
   }
 
   .progress-dot.active {

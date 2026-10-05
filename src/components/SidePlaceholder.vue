@@ -9,11 +9,21 @@
         :text="open ? openTooltipText : closedTooltipText"
       >
         <template #activator="{ props }">
+          <!--
+            Vuetify renders v-icon as <i role="button" tabindex="0">, but
+            role="button" is only a hint: the browser does not turn Enter or
+            Space into a click the way it would for a real <button>, so these
+            have to be handled here. Space is taken on keydown with .prevent
+            because otherwise it scrolls the page before the panel toggles.
+          -->
           <v-icon
             v-bind="props"
             :color="open ? openArrowColor : closedArrowColor"
             class="open-close-icon"
+            :aria-label="toggleLabel"
             @click="toggleOpen()"
+            @keyup.enter="toggleOpen()"
+            @keydown.space.prevent="toggleOpen()"
           >
             {{ open ? openIcon : closedIcon }}
           </v-icon>
@@ -35,7 +45,10 @@
               class="content-icon"
               v-bind="{ ...props, icon }"
               :color="color"
+              :aria-label="toggleLabel"
               @click="toggleOpen()"
+              @keyup.enter="toggleOpen()"
+              @keydown.space.prevent="toggleOpen()"
               size="large"
             >
             </v-icon>
@@ -76,6 +89,17 @@ const closedIcon = computed(() => `mdi-chevron-double-${props.openDirection}`);
 function toggleOpen() {
   open.value = !open.value;
 }
+
+// Both toggles render as role="button", so they need an accessible name or a
+// screen reader announces nothing but "button". The tooltip text is the natural
+// one and already says what the control does, but it is optional on this
+// component, so fall back to something generic rather than leaving it unnamed.
+// The name describes what activating it will do, which flips with the state.
+const toggleLabel = computed(() => {
+  return open.value
+    ? props.openTooltipText ?? "Collapse panel"
+    : props.closedTooltipText ?? "Expand panel";
+});
 
 const cssVars = computed(() => ({
   "--icon-alignment": props.openDirection == "left" ? "start" : "end",

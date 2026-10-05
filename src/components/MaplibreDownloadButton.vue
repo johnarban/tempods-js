@@ -1,7 +1,6 @@
 <template>
   <v-btn
   @click="onClick"
-  @keyup.enter="onClick"
   icon="mdi-camera-outline"
   >
   </v-btn>

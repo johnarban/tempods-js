@@ -28,10 +28,6 @@
             $emit('share');
           }
           "
-          @keyup.enter="() => {
-            copy(source);
-            $emit('share');
-          }"
           v-bind="props"
           :color="buttonColor"
           :elevation="elevation"

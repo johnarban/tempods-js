@@ -1,8 +1,10 @@
 <template>
   <div id="dtrs-months-picker" :class="{'dtrs-error-highlight': showErrorForEmpty && empty}">
     <div class="d-flex flex-wrap align-content-center">
-      <label class="text-subtitle-2 mb-2 d-inline">Months
-      </label>
+      <!-- Names the whole set of checkboxes, not any one of them. The
+           fieldset below is already a group; this gives it its name. -->
+      <div class="text-subtitle-2 mb-2 d-inline" id="dtrs-months-label">Months
+      </div>
       <div>
       <v-btn 
         size="x-small" 
@@ -30,6 +32,7 @@
       </div>
     </div>
     <fieldset 
+      aria-labelledby="dtrs-months-label"
       :style="cssVars" 
       :class="{'dtrs-months-block':true, 'dtrs-error-month': empty} ">
       <div v-for="month in MONTHS" :key="month">

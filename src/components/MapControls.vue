@@ -14,11 +14,16 @@
                 if (value != null && value.getTime() != singleDateSelected.getTime()) {
                   radio = null;
                   singleDateSelected = value;
-                  calendar?.closeMenu();
+                  closeCalendarAfterSelection();
                 }
               }"
               :allowed-dates="uniqueDays"
-              :input-atters="{clearable: false}"
+              :teleport="true"
+              :arrow-navigation="true"
+              @open="focusCalendarMenu"
+              @update-month-year="onCalendarMonthChange"
+              @closed="returnFocusToInput"
+              :input-attrs="{clearable: false}"
               :time-config="{ enableTimePicker: false }"
               :multi-dates="false"
               :transitions="false"
@@ -29,14 +34,26 @@
               :year-range="[uniqueDays[0]?.getFullYear(), uniqueDays[uniqueDays.length - 1]?.getFullYear()]"
               six-weeks
             >
+              <!--
+                This slot REPLACES vue-datepicker's own action buttons, and its
+                Cancel button lives in there -- so overriding it to add Latest
+                quietly left Escape as the only way out of the calendar, with
+                nothing on screen to say so. Cancel goes back first, which is
+                where the picker puts it by default.
+              -->
               <template #action-buttons>
                 <button
+                  class="dp__action_button dp__action-cancel"
+                  type="button"
+                  @click="() => calendar?.closeMenu()"
+                >
+                  Cancel
+                </button>
+                <button
                   class="dp__action_button dp__action-latest"
-                  @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
-                  @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                  type="button"
+                  @click="selectLatestDate"
                   :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
-                  elevation="0"
-                  size="sm"
                 >
                   Latest
               </button>
@@ -48,7 +65,17 @@
             <!-- time chips to select time specifically for esri times -->
           </v-radio-group>
         </div>        
-        <!-- add buttons to increment and decrement the singledateselected -->
+        <!--
+          add buttons to increment and decrement the singledateselected
+
+          No @keyup.enter on these: a v-btn renders a real <button>, and the
+          browser already fires a click when Enter is pressed on one. Handling
+          Enter as well ran the step twice, so each press moved two days
+          (measured: Enter -2, Space -1, mouse -1). Space is fine either way,
+          because its native click arrives on keyup and never matched the
+          .enter modifier. Only things that are not real buttons - a v-icon
+          with role="button", say - need Enter wired up by hand.
+        -->
         <div class="d-flex flex-row align-center my-2">
           <v-tooltip :disabled="touchscreen" text="Previous Date">
             <template v-slot:activator="{ props }">
@@ -56,7 +83,6 @@
                 v-bind="props"
                 class="rounded-icon-wrapper"
                 @click="store.moveBackwardOneDay"
-                @keyup.enter="store.moveBackwardOneDay"
                 :disabled="singleDateSelected === uniqueDays[0]"
                 color="#009ade"
                 variant="outlined"
@@ -74,7 +100,6 @@
                 v-bind="props"
                 style="padding-inline: 4px;"
                 @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
-                @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
                 :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
                 color="#009ade"
                 variant="outlined"
@@ -92,7 +117,6 @@
                 v-bind="props"
                 class="rounded-icon-wrapper"
                 @click="store.moveForwardOneDay"
-                @keyup.enter="store.moveForwardOneDay"
                 :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
                 color="#009ade"
                 variant="outlined"
@@ -130,6 +154,7 @@ import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
 import { type MoleculeType } from "@/esri/utils";
 import { useTempoStore } from "@/stores/app";
+import { useDatePickerKeyboard } from "@/composables/useDatePickerKeyboard";
 // import { useEsriTimesteps } from "@/composables/useEsriTimesteps";
 
 // import TimeChips from "@/components/TimeChips.vue";
@@ -152,6 +177,53 @@ const radio = ref<number | null>(null);
 const touchscreen = supportsTouchscreen();
 
 const calendar = ref<typeof VueDatePicker | null>(null);
+
+// The menu is teleported to <body> so the scrolling controls panel can't clip it,
+// but that also drops it at the end of the document's tab order: measured 8 Tab
+// presses from the input to reach the calendar, against 2 when it renders in
+// place. Moving focus into the menu as it opens fixes that and beats both -- the
+// keyboard is on the calendar straight away -- and putting focus back on the
+// input when it closes keeps the reader's place in the page.
+// Only one picker menu can be open at a time, so the open one is unambiguous;
+// vue-datepicker exposes no per-instance handle on the teleported node.
+//
+// This also fixes the calendar being unreachable during a tour. Teleporting puts
+// the menu outside both the tour popup and the tour's highlighted target, and
+// Shepherd's Tab handler wraps focus between those two ranges -- so with a tour
+// step up, every Tab stayed in the tour. Once focus is inside the menu Shepherd
+// has no listener there and Tab moves through the calendar normally.
+//
+// The calendar's keyboard handling - moving focus into the menu on open,
+// keeping days with no data out of the tab order, putting focus back on close,
+// and closing after a date is picked - is shared with the three pickers in the
+// date range creator. See useDatePickerKeyboard for why each piece is needed.
+const {
+  onOpen: focusCalendarMenu,
+  onMonthChange: onCalendarMonthChange,
+  onClosed: returnFocusToInput,
+  closeAfterSelection: closeCalendarAfterSelection,
+} = useDatePickerKeyboard(calendar);
+
+// "Latest" is a shortcut for picking the last available day, so it ends the same
+// way choosing that day in the grid does. It sets singleDateSelected directly
+// rather than going through the picker, so it never reached the
+// internal-model-change handler where the close lives -- which left the calendar
+// open afterwards with focus nowhere, a dead end for anyone on a keyboard.
+// Closing before setting the date, rather than after: changing the date makes
+// the picker re-initialise, and that re-render puts the menu back up over a
+// close issued alongside it. Selecting a day in the grid gets away with a
+// deferred close because it runs inside the picker's own handling; this button
+// runs outside it, and from keyup the frames do not line up -- the date applied
+// and the calendar stayed open. Closing first has no race to lose.
+function selectLatestDate() {
+  const latest = uniqueDays.value[uniqueDays.value.length - 1];
+  if (latest == null) {
+    return;
+  }
+  calendar.value?.closeMenu();
+  radio.value = null;
+  singleDateSelected.value = latest;
+}
 
 
 watch(molecule, (newMol: MoleculeType) => {

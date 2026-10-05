@@ -1,11 +1,14 @@
 <template>
   <div id='dtrs-days-picker' :class="{'dtrs-error-highlight': showErrorForEmpty && empty}">
     <div class="d-flex flex-wrap align-content-center">
-      <label class="text-subtitle-2 mb-2 d-block">Days of Week
+      <!-- Names the whole set of checkboxes rather than any one of them, so it
+           is a heading plus a group name, not a <label>. -->
+      <div class="text-subtitle-2 mb-2 d-block">
+        <span id="dtrs-days-label">Days of Week</span>
         <span v-show="showErrorForEmpty && empty" aria-live="polite" style="font-weight: bold;">
           (Select at least 1)
         </span>
-      </label>
+      </div>
       <div>
         <!-- clear -->
         <v-btn 
@@ -35,7 +38,7 @@
       </div>
     </div>
     <!-- just do labeled checkboxes -->
-    <div :style="cssVars" id="dtrs-days-block">
+    <div :style="cssVars" id="dtrs-days-block" role="group" aria-labelledby="dtrs-days-label">
     <label v-for="(day, idx) in DAYS" :key="idx" class="mr-3" style="text-wrap: nowrap;">
       <input 
         type="checkbox" 

@@ -21,7 +21,6 @@
       <v-btn
         class="my-2 d-block mx-auto"
         @click="showAdvancedLayers = !showAdvancedLayers"
-        @keyup.enter="showAdvancedLayers = !showAdvancedLayers"
         :text="showAdvancedLayers ? 'Show me less' : 'Show me more!'"
         density="compact"
         hide-details

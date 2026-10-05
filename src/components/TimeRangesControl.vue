@@ -7,9 +7,16 @@
       close-delay="50"
       open-delay="250"
       > -->
+    <!--
+      tabindex="-1" keeps this out of the tab order - the card itself does
+      nothing when activated - while still letting DatasetControls hand it
+      focus after it is created, so the new time range announces itself.
+    -->
     <v-list-item
-      v-for="(timeRange, index) in timeRanges"
-      :key="index"
+      v-for="timeRange in timeRangesNewestFirst"
+      :key="timeRange.id"
+      :data-card-id="timeRange.id"
+      tabindex="-1"
       class="my-2 rounded-lg time-range-v-list-item"
       density="compact"
       slim
@@ -22,11 +29,11 @@
           <v-btn
             v-if="hasDetails(timeRange)"
             class="float-right"
-            :icon="showDetails[index] ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+            :icon="showDetails[timeRange.id] ? 'mdi-chevron-up' : 'mdi-chevron-down'"
             variant="text"
             density="compact"
-            v-tooltip:top="showDetails[index] ? 'Hide Details' : 'Show details'"
-            @click.stop="showDetails[index] = !showDetails[index]"
+            v-tooltip:top="showDetails[timeRange.id] ? 'Hide Details' : 'Show details'"
+            @click.stop="showDetails[timeRange.id] = !showDetails[timeRange.id]"
           >
           </v-btn>
         </div>
@@ -36,7 +43,7 @@
         class="mb-1"
         :name="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
         :time-range="timeRange"
-        :show="showDetails[index]"
+        :show="showDetails[timeRange.id]"
         />
       <!-- </template> -->
       <!-- <template #append> -->
@@ -55,6 +62,16 @@
           :text="hasDatasets(timeRange) ? 'Cannot delete if used in a dataset' : 'Delete'"
           location="left"
         >
+          <!--
+            The wrapper div is here because a disabled button fires no mouse
+            events, so the tooltip explaining why it is disabled would never
+            show on hover. But Vuetify binds the activator's focus handler as a
+            plain focus listener, which does not bubble, so focusing the button
+            inside the wrapper never opened the tooltip and a keyboard user got
+            nothing. Forwarding focus and blur to the handlers on the wrapper's
+            props fixes that, and passing aria-describedby down puts the
+            description on the thing a screen reader actually lands on.
+          -->
           <template #activator="{ props }">
             <div class="d-flex" v-bind="props">
               <v-btn
@@ -64,6 +81,9 @@
                 size="small"
                 density="compact"
                 :disabled="hasDatasets(timeRange)"
+                :aria-describedby="props['aria-describedby']"
+                @focus="props.onFocus?.($event)"
+                @blur="props.onBlur?.($event)"
                 @click.stop="() => emit('delete-time-range', timeRange)"
               ></v-btn>
             </div>
@@ -77,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import type { TimeRange, UserDataset } from "../types";
 import { areEquivalentTimeRanges, formatTimeRange } from "../utils/timeRange";
 
@@ -108,7 +128,16 @@ function hasDetails(timeRange: TimeRange): boolean {
   return false;
 }
 
-const showDetails = ref(props.datasets.map(() => false));
+// Newest first, to match the region and dataset lists: a card you just made
+// sits next to the button that made it. Reverses a copy, so the store's order
+// is untouched.
+const timeRangesNewestFirst = computed(() => props.timeRanges.slice().reverse());
+
+// Keyed by time range id rather than by position. It was an array indexed by
+// the v-for index, and sized from props.datasets rather than props.timeRanges,
+// so it was already the wrong length; with the list reversed, inserting at the
+// top would also have shifted every card's open/closed state down by one.
+const showDetails = ref<Record<string, boolean>>({});
 </script>
 
 <style scoped lang="less">

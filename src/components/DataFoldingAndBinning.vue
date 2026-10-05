@@ -715,8 +715,9 @@ function saveFolding() {
     ]//.slice(0, isFoldWithNoBin.value ? 1 : 2) // only include summary if not fold-with-no-bin
   };
   emit('save', foldedSelection);
-
-  closeDialog();
+  // Deliberately no closeDialog() here: saving keeps the dialog open so the
+  // aggregation just made stays on screen and another can be made without
+  // reopening it. Cancel and the dialog's own X still close it.
 }
 
 // Close dialog

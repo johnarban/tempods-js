@@ -9,6 +9,16 @@
         {{ title }}
       </v-card-title>
     </slot>
+    <!--
+      autofocus is kept on purpose. This component is only ever used inside a
+      dialog (the rename dialogs in DatasetControls), and a dialog is supposed
+      to move focus into itself when it opens - otherwise focus is left behind
+      on the page underneath. Typing the new name is the entire point of the
+      dialog, so the text field is the right landing place. The rule is aimed
+      at autofocus on page load, which takes focus without the user asking;
+      that is not what is happening here.
+    -->
+    <!-- eslint-disable vuejs-accessibility/no-autofocus -->
     <v-text-field
       class="mb-2 px-2"
       v-bind="$attrs"
@@ -18,6 +28,7 @@
       autofocus
       @keyup.enter="onConfirm"
     />
+    <!-- eslint-enable vuejs-accessibility/no-autofocus -->
     <v-card-actions>
       <v-spacer />
       <v-btn variant="text" @click="emit('cancel')">Cancel</v-btn>

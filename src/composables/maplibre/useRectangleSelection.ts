@@ -100,6 +100,28 @@ export function useRectangleSelection(
 
     },
 
+    // The keyboard equivalent of dragging a rectangle. Everything downstream of
+    // a selection only needs these four lng/lat numbers, and the map's current
+    // bounds are already in that shape, so Enter takes the area on screen as
+    // the region: pan and zoom with the arrow keys and +/- until the map frames
+    // what you want, then press Enter. Using the whole viewport rather than
+    // some fraction of it means there is no preview box to draw or keep in step
+    // with the map, because the view is the box.
+    onKeydown(event: KeyboardEvent) {
+      const mMap = map.value;
+      if (!mMap || event.key !== "Enter") {
+        return;
+      }
+      event.preventDefault();
+      const bounds = mMap.getBounds();
+      handler.selectionInfo.value = {
+        xmin: bounds.getWest(),
+        ymin: bounds.getSouth(),
+        xmax: bounds.getEast(),
+        ymax: bounds.getNorth(),
+      };
+    },
+
     onMousemove(event: MapMouseEvent) {
       const mMap = map.value;
       if (!mMap || (startCoords === null) || (!geoJson)) {

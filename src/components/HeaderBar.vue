@@ -55,8 +55,7 @@
         v-if="(new Date('2025-05-7 00:00:00') > new Date())"
         class='whats-new-button pulse' 
         aria-label="What's new" 
-        @click="showChanges = true" 
-        @keyup.enter="showChanges = true" 
+        @click="showChanges = true"
         variant="outlined" 
         rounded="lg" 
         :color="accentColor2" 
@@ -88,17 +87,35 @@
             size="lg"
           />
       </v-btn>
+      <!--
+        role="status" because the bubble appears by itself rather than in
+        response to anything the user did, so a screen reader would otherwise
+        never mention it - and its dismiss button is the only way to get rid of
+        it, the auto-hide timeout below having been commented out.
+      -->
       <transition name="tour-hint-fade">
-        <div v-if="showTourHintVisible" class="tour-hint-bubble">
+        <div v-if="showTourHintVisible" class="tour-hint-bubble" role="status">
           Open tour here any time
-          <font-awesome-icon
-              class="ml-2 cursor-pointer"
+          <!--
+            A real <button>, not a bare font-awesome-icon. The icon renders an
+            <svg>, which is not focusable, so the only way to dismiss this was
+            with a mouse: the @keyup.enter it used to carry could never fire
+            because nothing could put focus on it. A button is a tab stop, gets
+            Enter and Space from the browser, takes the app's focus ring, and
+            can say what it does.
+          -->
+          <button
+            type="button"
+            class="tour-hint-dismiss ml-2"
+            aria-label="Dismiss tour hint"
+            @click="showTourHintVisible = false"
+          >
+            <font-awesome-icon
               icon="fa-circle-xmark"
               size="lg"
-              @click="showTourHintVisible = false"
-              @keyup.enter="showTourHintVisible = false"
               color="#ffcc33"
             />
+          </button>
         </div>
       </transition>
     </div>
@@ -118,7 +135,9 @@
         <v-icon>mdi-file-arrow-up-down</v-icon>
       </v-btn>
 
-      <v-btn aria-role="menu" aria-label="Show menu" class="menu-button" variant="outlined" rounded="lg" :color="accentColor2" elevation="5">
+      <!-- aria-haspopup, not aria-role: there is no aria-role attribute, and
+           the button is not itself a menu - it opens one. -->
+      <v-btn aria-haspopup="menu" aria-label="Show menu" class="menu-button" variant="outlined" rounded="lg" :color="accentColor2" elevation="5">
         <v-icon size="x-large">mdi-menu</v-icon>
         <v-menu
           activator="parent"
@@ -128,7 +147,6 @@
               tabindex="0"
               aria-label="See recent changes"
               @click="showChanges = true"
-              @keyup.enter="showChanges = true"
               >
               What's New
             </v-list-item>
@@ -137,7 +155,6 @@
               tabindex="0" 
               aria-label="Show introduction"
               @click="() => emit('intro-slide', 1)"
-              @keyup.enter="() => emit('intro-slide', 1)"
               disabled
               >
                 Introduction
@@ -147,7 +164,6 @@
               tabindex="0"
               aria-label="Show user guide"
               @click="() => emit('intro-slide', 4)"
-              @keyup.enter="() => emit('intro-slide', 4)"
               disabled
               >
               User Guide
@@ -157,7 +173,6 @@
               tabindex="0"
               aria-label="Show dialog telling about the data"
               @click="showAboutData = true"
-              @keyup.enter="showAboutData = true"
               >
               About the Data
             </v-list-item>
@@ -173,7 +188,6 @@
               tabindex="0" 
               aria-label="Show credits"
               @click="showCredits = true"
-              @keyup.enter="showCredits = true"
               disabled
               >
                 Credits
@@ -332,6 +346,20 @@ a[href="https://tempo.si.edu"]>img {
 
 .tour-button-wrapper {
   position: relative;
+}
+
+// The dismiss control is a <button> so it can be focused and operated from the
+// keyboard; these rules strip the chrome a button comes with so it still looks
+// like the bare icon it replaced. The focus ring comes from the global
+// :focus-visible rule in TempoLab and is deliberately not suppressed here.
+.tour-hint-dismiss {
+  padding: 0;
+  border: none;
+  background: none;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: pointer;
+  color: inherit;
 }
 
 .tour-hint-bubble {
