@@ -102,7 +102,7 @@ import { getTimezoneOffset } from "date-fns-tz";
 import { v4 } from "uuid";
 
 import type { LatLngPair, LayerStatus, PointSelectionInfo, RectangleSelectionInfo, SelectionType } from "@/types";
-import { featureStatus } from "@/datasets/layerStatus";
+// import { featureStatus } from "@/datasets/layerStatus";
 import { type MoleculeType, MOLECULE_OPTIONS, moleculeVariable } from "@/esri/utils";
 import { colorbarOptions } from "@/esri/ImageLayerConfig";
 import { useTempoStore } from "@/stores/app";
@@ -226,6 +226,7 @@ const popLayer = addPopulationDensityLayer();
 import { addLandUseLayer } from "@/datasets/addLandUse";
 const sentinalLandUseLayer = addLandUseLayer();
 
+/*
 import { addAsthmaLayer } from "@/datasets/addAsthma";
 const asthmaCounties = addAsthmaLayer('places-asthma-counties', 2);
 // asthma tracts disabled
@@ -238,6 +239,7 @@ function syncAsthmaStatus(layer: ReturnType<typeof addAsthmaLayer>) {
 }
 syncAsthmaStatus(asthmaCounties);
 // syncAsthmaStatus(asthmaTracts);
+*/
 
 const hmsFire = addHMSFire(singleDateSelected, {
   layerName: 'hms-fire',
@@ -329,7 +331,7 @@ function addAdvancedLayers(m: Map | null) {
   
   tryCatch('power-plants-layer', () => pp.addLayer());
   // pp.togglePowerPlants(false);
-  tryCatch(asthmaCounties.layerId, () => asthmaCounties.addToMap(m));
+  // tryCatch(asthmaCounties.layerId, () => asthmaCounties.addToMap(m));
   // asthma tracts disabled
   // tryCatch(asthmaTracts.layerId, () => asthmaTracts.addToMap(m));
 }
@@ -348,7 +350,7 @@ function removeAdvancedLayers(m: Map | null) {
   ozoneLayer.removeEsriSource();
   o3tropLayer.removeEsriSource();
   pp.removeLayer();
-  asthmaCounties.removeFromMap(m);
+  // asthmaCounties.removeFromMap(m);
   // asthma tracts disabled
   // asthmaTracts.removeFromMap(m);
   store.clearLayerReady('tempo-hcho');
@@ -356,7 +358,7 @@ function removeAdvancedLayers(m: Map | null) {
   store.clearLayerReady('tempo-o3trop');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
-  store.clearLayerReady('places-asthma-counties');
+  // store.clearLayerReady('places-asthma-counties');
   // store.clearLayerReady('places-asthma-tracts');
 }
 

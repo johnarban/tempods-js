@@ -27,7 +27,7 @@ const layerNames: Record<string, string | undefined> = {
   "pop-dens": "Population Density",
   "land-use": "Land Use",
   "hms-fire": "Fire Detections",
-  "places-asthma-counties": "Asthma Prevalence",
+  // "places-asthma-counties": "Asthma Prevalence",
   "tempo-lite": "TEMPO NO2 (alt)",
 };
 
