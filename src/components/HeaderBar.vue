@@ -108,7 +108,7 @@
             type="button"
             class="tour-hint-dismiss ml-2"
             aria-label="Dismiss tour hint"
-            @click="showTourHintVisible = false"
+            @click="dismissTourHint()"
           >
             <font-awesome-icon
               icon="fa-circle-xmark"
@@ -256,8 +256,44 @@ const showSaveDialog = ref(false);
 const showErrorSnackbar = ref(false);
 const ioErrorMessage = ref("");
 
+// "Open tour here any time" is a one-off orientation hint: once someone has
+// closed it, it should not come back on their next visit either. The flag
+// lives in localStorage alongside the intro popup's own "don't show again"
+// preference, and is read into the existing per-load guard, which then covers
+// both "already shown in this tab" and "dismissed on an earlier visit".
+//
+// Reads and writes are wrapped because localStorage throws rather than
+// returning null when storage is blocked (a private window, say). If it does,
+// the hint simply behaves as it used to - shown once per load - rather than
+// taking the header down with it.
+const localStorageTourHintKey = "tempods-tour-hint-seen";
+
+function tourHintSeen(): boolean {
+  try {
+    return window.localStorage.getItem(localStorageTourHintKey) === "true";
+  } catch (_error) {
+    return false;
+  }
+}
+
+function rememberTourHintSeen() {
+  try {
+    window.localStorage.setItem(localStorageTourHintKey, "true");
+  } catch (_error) {
+    // Nothing to do: the in-memory guard below still stops it repeating here.
+  }
+}
+
+// Closing the hint is what records it, rather than merely showing it. Someone
+// who never notices the bubble gets it again next time; it only stops coming
+// back once they have actually dismissed it.
+function dismissTourHint() {
+  showTourHintVisible.value = false;
+  rememberTourHintSeen();
+}
+
 const showTourHintVisible = ref(false);
-const tourHintAlreadyShown = ref(false);
+const tourHintAlreadyShown = ref(tourHintSeen());
 // let tourHintTimeout: ReturnType<typeof setTimeout> | undefined;
 
 watch(showTourHint, (visible) => {

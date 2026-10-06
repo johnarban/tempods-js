@@ -141,7 +141,14 @@
               value="monthrange">Quick Select</v-tab>
             </v-tabs> -->
             
-            <div class="ml-4 mb-4 pl-4 dtr-select-by-div">
+            <!--
+              ml-2/pl-2 rather than ml-4/pl-4: this wrapper indents everything
+              in the multi-day section, and 16px of margin plus 16px of padding
+              was 32px of a panel that can be dragged down to 250px. Halved to
+              16px, which still reads as an indented group against the
+              border-left while giving the cards inside it that much more room.
+            -->
+            <div class="ml-2 mb-4 pl-2 dtr-select-by-div">
               <v-radio-group
                 id="dtr-select-by-group"
                 v-model="tab"

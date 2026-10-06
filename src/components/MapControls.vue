@@ -130,6 +130,15 @@
         </div>
       </div>
       <div class="map-dropdown-container d-flex flex-row flex-wrap">
+        <!--
+          menu-props z-index: the tour's step is the Timezone dropdown, and the
+          menu is teleported to <body>, so it lands outside the cutout Shepherd
+          makes in its modal overlay. At Vuetify's default the overlay (z-index
+          9997) paints over the open menu, which greys the options out, and its
+          <path> is the topmost element at each option, so clicks never reach
+          them - choosing a timezone during the tour did nothing. 10000 clears
+          both the overlay and Shepherd's own step dialog at 9999.
+        -->
         <v-select
           v-model="selectedTimezone"
           class="map-dropdowns timezone-dropdown"
@@ -137,6 +146,7 @@
           :items="timezoneOptions"
           item-title="name"
           item-value="tz"
+          :menu-props="{ zIndex: 10000 }"
           hide-details
           dense
           variant="outlined"

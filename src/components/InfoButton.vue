@@ -121,7 +121,7 @@ export default defineComponent({
 
 .info-button-icon {
   font-size: 1.3em; 
-  color: var(--accent-color);
+  color: #FFF;
 }
 
 </style>

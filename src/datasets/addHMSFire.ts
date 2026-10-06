@@ -375,7 +375,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     filter: ['has', 'point_count'],
     layout: {
       'icon-image': 'hms-fire-icon',
-      'icon-size': ['*', .03, ['log10', ['get', 'totalFRP']]],
+      'icon-size': ['*', .02, ['log10', ['get', 'totalFRP']]],
       'icon-allow-overlap': true,
       'visibility': lastKnownVisible.value ? 'visible' : 'none'
     },

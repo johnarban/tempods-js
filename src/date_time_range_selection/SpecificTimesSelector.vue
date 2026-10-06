@@ -1,6 +1,8 @@
 <template>
   <div class="mt-2 dtrs-flex-time-box">
-    <v-col>
+    <!-- pa-0: v-col adds 12px of padding on each side by default, which is
+         24px of a panel that can be under 200px wide. -->
+    <v-col class="pa-0">
     <v-radio-group
       v-model="allDay"
       direction="horizontal"
@@ -168,14 +170,40 @@ function normalizeTimes(values: string[]) {
   line-height: 1;
 }
 
+/* The info icons line up in a column at the right edge of the card.
+   Vuetify's label is content-sized (flex: 0 1 auto, measured 107px in a 182px
+   row), so justify-content: space-between had no free space to distribute -
+   which is why lining the icons up used to need a fixed-width label, and why
+   that label then could not shrink. Letting the label fill the row gives
+   space-between something to work with, so the icons align and the text is
+   still free to shrink and wrap.
+
+   :has() keeps this off the combobox's own floating label, which is a
+   .v-label in this same card. */
+.dtrs-flex-time-box :deep(.v-label:has(.radio-info-label)) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .radio-info-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
+  width: 100%;
+  /* A flex item will not shrink below its content unless told to. */
+  min-width: 0;
 }
 
 .radio-info-label > div {
-  width: 16ch;
+  /* Was width: 16ch, which measured 155px and stayed 155px at every panel
+     width - the row could not shrink, so below about 280px of panel the row
+     ran off the right edge and the panel started scrolling sideways
+     (measured: at 240px, scrollWidth 250 vs clientWidth 226). Letting the
+     text shrink and wrap is what keeps it inside the card.
+
+     The alignment the fixed width gave is kept, by the rule above. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 </style>
