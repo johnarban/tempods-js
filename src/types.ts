@@ -240,4 +240,4 @@ export interface UseSelectionOptions<MapType, EventType, SelectionInfo> {
 
 export type UnifiedRegion = RectangleSelection | PointSelection;
 
-export type SelectionType = "rectangle" | "point" | null;
+export type SelectionType = "rectangle" | "point" | "move" | null;

@@ -47,7 +47,7 @@
           <template #title>
             My  Regions
             <popup-info-button
-                info-text="Click the region card to go to that region on the map. Click the pen to rename a region. Click the trash can to delete a region. If an existing dataset is using a region, it cannot be deleted."
+                info-text="Click the region card to go to that region on the map. Click the pen to rename a region. Click the trash can to delete a region. If an existing dataset is using a region, it cannot be moved or deleted. To move a region, click the arrows, then click the map where the region should go: a dashed outline shows where it will land. The copy button makes a copy of a region and starts moving the copy. From the keyboard, press Enter to move the region to the centre of the map, or Esc to stop."
                 :width="popupCardWidth"
               >
               </popup-info-button>
@@ -170,6 +170,48 @@
                         editRegionName(region as UnifiedRegionType);
                       }"
                     ></v-btn>
+                    <v-btn
+                      v-if="region.geometryType === 'rectangle'"
+                      variant="plain"
+                      v-tooltip:top="'Duplicate and move the copy'"
+                      icon="mdi-content-copy"
+                      color="white"
+                      size="small"
+                      density="compact"
+                      @click.stop="() => {
+                        store.startMovingRegion(store.duplicateRegion(region as UnifiedRegionType));
+                      }"
+                    ></v-btn>
+                    <v-tooltip
+                      v-if="region.geometryType === 'rectangle'"
+                      :text="store.regionHasDatasets(region as UnifiedRegionType) ? 'Cannot move if used in a dataset' : 'Move'"
+                      location="top"
+                    >
+                      <!-- Wrapped for the same reason as the delete button below -->
+                      <template #activator="{ props }">
+                        <div class="d-flex" v-bind="props">
+                          <v-btn
+                            variant="plain"
+                            icon="mdi-cursor-move"
+                            color="white"
+                            size="small"
+                            density="compact"
+                            :active="selectionActive === 'move' && regionToMove === region.id"
+                            :disabled="store.regionHasDatasets(region as UnifiedRegionType)"
+                            :aria-describedby="props['aria-describedby']"
+                            @focus="props.onFocus?.($event)"
+                            @blur="props.onBlur?.($event)"
+                            @click.stop="() => {
+                              if (selectionActive === 'move' && regionToMove === region.id) {
+                                selectionActive = null;
+                              } else {
+                                store.startMovingRegion(region as UnifiedRegionType);
+                              }
+                            }"
+                          ></v-btn>
+                        </div>
+                      </template>
+                    </v-tooltip>
                     <v-tooltip
                       :text="store.regionHasDatasets(region as UnifiedRegionType) ? 'Cannot delete if used in a dataset' : 'Delete'"
                       location="left"
@@ -585,6 +627,7 @@ const {
   singleDateSelected,
   uniqueDays,
   selectionActive,
+  regionToMove,
   focusRegion,
   focusCardId,
   showSamplingPreviewMarkers,

@@ -9,7 +9,7 @@ import { RectangleSelectionInfo, PointSelectionInfo, UnifiedRegion } from "../..
 const layerGetter = (m: Map, id: string) => m.getLayer(id);
 export type LayerType = Exclude<ReturnType<typeof layerGetter>, undefined>;
 
-function createBounds(info: RectangleSelectionInfo) {
+export function createBounds(info: RectangleSelectionInfo) {
   return [
     [info.xmin, info.ymin],
     [info.xmax, info.ymin],

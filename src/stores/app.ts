@@ -12,6 +12,7 @@ import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
 import { useTimezone, type Timezone } from "@/composables/useTimezone";
 import { atleast1d } from "@/utils/atleast1d";
 import { formatSingleRange, rangeForSingleDay } from "@/utils/timeRange";
+import { COLORS } from "@/utils/color";
 
 const createTempoStore = (backend: MappingBackends) => defineStore("tempods", () => {
   const debugMode = ref(false);
@@ -47,6 +48,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   // and the dialogs are all in different components. Works the same way
   // focusRegion does: whoever acts on it sets it back to null.
   const focusCardId = ref<string | null>(null);
+  // The id of the region being moved while selectionActive is "move"
+  const regionToMove = ref<string | null>(null);
   const regionOpacity = ref(0.7);
   const regionVisibility = ref(true);
 
@@ -405,6 +408,36 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     regions.value.splice(index, 1);
   }
 
+  // The copy gets the next region color, so that it can be told apart from the
+  // original while they overlap, and a name that setRegionName will accept
+  function duplicateRegion(region: UnifiedRegion): UnifiedRegion {
+    const color = COLORS[regionsCreatedCount.value % COLORS.length];
+    regionsCreatedCount.value += 1;
+
+    const names = new Set(regions.value.map(r => r.name));
+    let name = `${region.name} copy`;
+    for (let n = 2; names.has(name); n++) {
+      name = `${region.name} copy ${n}`;
+    }
+
+    const copy = {
+      ...toRaw(region),
+      id: v4(),
+      name,
+      color,
+      defaultColor: color,
+      geometryInfo: { ...toRaw(region.geometryInfo) },
+    } as UnifiedRegion;
+    delete copy.source;
+    addRegion(copy);
+    return copy;
+  }
+
+  function startMovingRegion(region: UnifiedRegion) {
+    regionToMove.value = region.id;
+    selectionActive.value = "move";
+  }
+
   function registerMap(map: Map) {
     maps.value.push(map);
   }
@@ -439,6 +472,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     selectionActive,
     focusRegion,
     focusCardId,
+    regionToMove,
     regionOpacity,
     regionVisibility,
 
@@ -487,6 +521,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     deleteTimeRange,
     deleteRegion,
     deleteDataset,
+    duplicateRegion,
+    startMovingRegion,
 
     userSelectedLocations,
     userSelectedTimezones,
@@ -562,7 +598,7 @@ export function deserializeTempoStore(value: string, compressed: boolean): State
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint"]);
+const OMIT = new Set(["debugMode", "selectionActive", "regionToMove", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint"]);
 export function serializeTempoStore(store: TempoStore, compress: boolean): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};
