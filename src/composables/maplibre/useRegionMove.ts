@@ -31,12 +31,15 @@ export function useRegionMove(
 
   const uuid = v4();
   const activeRef = toRef(active);
+  // Where the outline is now, which is where Enter puts the region
+  let preview: RectangleSelectionInfo | null = null;
 
   function showPreview(info: RectangleSelectionInfo) {
     const mMap = map.value;
     if (!mMap) {
       return;
     }
+    preview = info;
 
     const geoJson: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
@@ -72,7 +75,17 @@ export function useRegionMove(
     });
   }
 
+  function showPreviewAtCentre() {
+    const mMap = map.value;
+    if (!mMap || !region.value) {
+      return;
+    }
+    const centre = mMap.getCenter();
+    showPreview(recentre(region.value, centre.lng, centre.lat));
+  }
+
   function removePreview() {
+    preview = null;
     const mMap = map.value;
     if (!mMap) {
       return;
@@ -101,24 +114,28 @@ export function useRegionMove(
       }
     },
 
-    // As with drawing a rectangle, Enter uses the map view: the region moves
-    // to the centre of what is on screen.
+    // Enter puts the region where the outline is: in the centre of the map
+    // view, unless the mouse has since moved it
     onKeydown(event: KeyboardEvent) {
-      const mMap = map.value;
-      if (!mMap || !region.value || event.key !== "Enter") {
+      if (preview === null || event.key !== "Enter") {
         return;
       }
       event.preventDefault();
-      const centre = mMap.getCenter();
-      handler.selectionInfo.value = recentre(region.value, centre.lng, centre.lat);
+      handler.selectionInfo.value = preview;
     },
   };
 
-  // Start the outline on the region where it is now, so there is something to
-  // see before the mouse reaches the map
+  // The outline starts in the centre of the view and goes back there whenever
+  // the map moves. baseUseSelection turns off panning and zooming with the
+  // mouse while a selection is active, so the map only moves from the keyboard
+  // (the arrow keys and +/-): a keyboard user moves the map under the outline,
+  // then presses Enter.
   watch([activeRef, region], ([isActive, info]) => {
+    const mMap = map.value;
+    mMap?.off("move", showPreviewAtCentre);
     if (isActive && info) {
-      showPreview(info);
+      showPreviewAtCentre();
+      mMap?.on("move", showPreviewAtCentre);
     } else {
       removePreview();
     }
