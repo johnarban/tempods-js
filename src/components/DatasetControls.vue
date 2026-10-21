@@ -182,36 +182,23 @@
                         store.startMovingRegion(store.duplicateRegion(region as UnifiedRegionType));
                       }"
                     ></v-btn>
-                    <v-tooltip
-                      v-if="region.geometryType === 'rectangle'"
-                      :text="store.regionHasDatasets(region as UnifiedRegionType) ? 'Cannot move if used in a dataset' : 'Move'"
-                      location="top"
-                    >
-                      <!-- Wrapped for the same reason as the delete button below -->
-                      <template #activator="{ props }">
-                        <div class="d-flex" v-bind="props">
-                          <v-btn
-                            variant="plain"
-                            icon="mdi-cursor-move"
-                            color="white"
-                            size="small"
-                            density="compact"
-                            :active="selectionActive === 'move' && regionToMove === region.id"
-                            :disabled="store.regionHasDatasets(region as UnifiedRegionType)"
-                            :aria-describedby="props['aria-describedby']"
-                            @focus="props.onFocus?.($event)"
-                            @blur="props.onBlur?.($event)"
-                            @click.stop="() => {
-                              if (selectionActive === 'move' && regionToMove === region.id) {
-                                selectionActive = null;
-                              } else {
-                                store.startMovingRegion(region as UnifiedRegionType);
-                              }
-                            }"
-                          ></v-btn>
-                        </div>
-                      </template>
-                    </v-tooltip>
+                    <v-btn
+                      v-if="region.geometryType === 'rectangle' && !store.regionHasDatasets(region as UnifiedRegionType)"
+                      variant="plain"
+                      v-tooltip:top="'Move'"
+                      icon="mdi-cursor-move"
+                      color="white"
+                      size="small"
+                      density="compact"
+                      :active="selectionActive === 'move' && regionToMove === region.id"
+                      @click.stop="() => {
+                        if (selectionActive === 'move' && regionToMove === region.id) {
+                          selectionActive = null;
+                        } else {
+                          store.startMovingRegion(region as UnifiedRegionType);
+                        }
+                      }"
+                    ></v-btn>
                     <v-tooltip
                       :text="store.regionHasDatasets(region as UnifiedRegionType) ? 'Cannot delete if used in a dataset' : 'Delete'"
                       location="left"
