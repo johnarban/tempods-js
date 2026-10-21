@@ -56,7 +56,7 @@
       </div>
     </v-card>
     <v-progress-linear
-      v-if="showLoadingIndicator"
+      v-if="showLoadingBar"
       indeterminate
       :color="accentColor"
       height="20"
@@ -106,6 +106,7 @@
 import { computed, ref, shallowRef, toRaw, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
 import { useDisplay } from 'vuetify';
 import { storeToRefs } from "pinia";
+import { refDebounced } from "@vueuse/core";
 import { MapBoxFeature, MapBoxFeatureCollection, MapBoxFeatureType, MapBoxForwardGeocodingOptions, geocodingInfoForSearch } from "@cosmicds/vue-toolkit";
 import { Map, GeoJSONSource, type StyleLayer } from "maplibre-gl";
 import { getTimezoneOffset } from "date-fns-tz";
@@ -172,6 +173,10 @@ const {
   showLoadingIndicator,
   accentColor,
 } = storeToRefs(store);
+
+// only show the loading bar if loading takes longer than 3 seconds, and hide it as soon as loading is done
+const loadingForAWhile = refDebounced(showLoadingIndicator, 3000);
+const showLoadingBar = computed(() => showLoadingIndicator.value && loadingForAWhile.value);
 
 const molecule = ref<MoleculeType>("no2");
 const currentTempoDataService = computed(() => store.getTempoDataService(molecule.value));
