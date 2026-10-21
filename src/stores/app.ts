@@ -433,10 +433,24 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     addRegion(copy);
     return copy;
   }
-
-  function startMovingRegion(region: UnifiedRegion) {
+  
+  const movingRegionIsCopy = ref(false);
+  function startMovingRegion(region: UnifiedRegion, isCopy: boolean = false) {
     regionToMove.value = region.id;
+    movingRegionIsCopy.value = isCopy;
     selectionActive.value = "move";
+  }
+  
+  function cancelMovingRegion() {
+    if (movingRegionIsCopy.value) {
+      const region = regions.value.find(r => r.id === regionToMove.value) as UnifiedRegion;
+      if (region !== undefined) {
+        deleteRegion(region);
+      }
+      movingRegionIsCopy.value = false;
+    }
+    // remove the region that was being moved from the map, and reset the state
+    regionToMove.value = null;
   }
 
   function registerMap(map: Map) {
@@ -525,6 +539,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     deleteDataset,
     duplicateRegion,
     startMovingRegion,
+    cancelMovingRegion,
+    movingRegionIsCopy,
 
     userSelectedLocations,
     userSelectedTimezones,
@@ -600,7 +616,7 @@ export function deserializeTempoStore(value: string, compressed: boolean): State
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "regionToMove", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint"]);
+const OMIT = new Set(["debugMode", "selectionActive", "regionToMove", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint", "movingRegionIsCopy"]);
 export function serializeTempoStore(store: TempoStore, compress: boolean): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};

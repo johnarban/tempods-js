@@ -33,6 +33,7 @@ export function useRegionMove(
   const activeRef = toRef(active);
   // Where the outline is now, which is where Enter puts the region
   let preview: RectangleSelectionInfo | null = null;
+  
 
   function showPreview(info: RectangleSelectionInfo) {
     const mMap = map.value;
@@ -107,7 +108,9 @@ export function useRegionMove(
         showPreview(recentre(region.value, event.lngLat.lng, event.lngLat.lat));
       }
     },
-
+    
+    
+    // the mouse up after a click or tap
     onMouseup(event: MapMouseEvent) {
       if (region.value) {
         handler.selectionInfo.value = recentre(region.value, event.lngLat.lng, event.lngLat.lat);

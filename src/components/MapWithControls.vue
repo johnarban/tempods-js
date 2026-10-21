@@ -162,6 +162,7 @@ const {
   showAdvancedLayers,
   showRGBMode,
 } = storeToRefs(store);
+const { cancelMovingRegion } = store;
 
 const molecule = ref<MoleculeType>("no2");
 const currentTempoDataService = computed(() => store.getTempoDataService(molecule.value));
@@ -804,7 +805,7 @@ watch(moveInfo, (info: RectangleSelectionInfo | null) => {
 // another selection
 watch(moveSelectionActive, (active: boolean) => {
   if (!active) {
-    regionToMove.value = null;
+    cancelMovingRegion();
   }
 });
 

@@ -196,7 +196,7 @@
                       size="small"
                       density="compact"
                       @click.stop="() => {
-                        store.startMovingRegion(store.duplicateRegion(region as UnifiedRegionType));
+                        store.startMovingRegion(store.duplicateRegion(region as UnifiedRegionType), true);
                       }"
                     ></v-btn>
                     <v-btn
