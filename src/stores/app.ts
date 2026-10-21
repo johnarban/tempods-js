@@ -71,6 +71,23 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const shownLayers = ref<string[]>([]);
   const layersReady = ref<globalThis.Map<string, LayerReadiness>>(new globalThis.Map<string, LayerReadiness>());
 
+  // check if layer is loading. layersReady is about the state of the backing service
+  const layersLoading = ref<Record<string, boolean>>({});
+
+  const onlyShowFirstLoad = false;
+  let firstLoadDone = false;
+  const showLoadingIndicator = ref(false);
+  // for now only check the no2-layer
+  watch(() => layersLoading.value["tempo-no2"], (loading) => {
+    if (onlyShowFirstLoad && firstLoadDone) {
+      return;
+    }
+    showLoadingIndicator.value = loading ?? false;
+    if (!loading) {
+      firstLoadDone = true;
+    }
+  });
+
   // probably should be a map of some sort, but for now it is only used with hms-fire layer which is prone to breaking
   const layerAction = ref<{ layerId: string; action: string } | null>(null);
 
@@ -241,6 +258,10 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
       ready: [...serviceReady],
     });
     layersReady.value = next;
+  }
+
+  function setLayerLoading(layerName: string, loading: boolean) {
+    layersLoading.value[layerName] = loading;
   }
 
   function doLayerAction(layerId: string, action: string) {
@@ -515,6 +536,9 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     layersReady,
     setLayerReady,
     clearLayerReady,
+    layersLoading,
+    setLayerLoading,
+    showLoadingIndicator,
     layerAction,
     doLayerAction,
 
@@ -562,7 +586,7 @@ export function deserializeTempoStore(value: string, compressed: boolean): State
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint"]);
+const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "layersLoading", "showLoadingIndicator", "globalWarning", "layerAction", "showTourHint"]);
 export function serializeTempoStore(store: TempoStore, compress: boolean): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};

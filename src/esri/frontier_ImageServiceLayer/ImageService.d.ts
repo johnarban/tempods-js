@@ -12,6 +12,7 @@ export declare class ImageService {
   setDate(from: Date, to: Date): void;
   setRenderingRule(rule: object): void;
   setMosiacRule(rule: object): void;
+  onLoadingChange(callback: (loading: boolean) => void): { on: () => void; off: () => void };
   setAttributionFromService(): void;
   getMetadata(): Promise<any>;
   identify(lnglat: any, returnGeometry: any): Promise<unknown>;

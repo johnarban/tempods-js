@@ -113,6 +113,30 @@ export class ImageService {
     this._updateSource();
   }
 
+  // Calls callback(true) when tiles for this source start loading and callback(false)
+  // once they are all done (loaded or errored). Returns { on, off } to start/stop listening.
+  onLoadingChange (callback) {
+    let loading = false;
+    // https://maplibre.org/maplibre-gl-js/docs/API/classes/MapSourceDataEvent/ example
+    const check = (e) => {
+      // only check for this source
+      if (e.sourceId !== this._sourceId) return;
+      const isLoading = !e.isSourceLoaded;
+      // did it change?
+      if (isLoading !== loading) {
+        loading = isLoading;
+        // then do a thing
+        callback(loading);
+      }
+    };
+    // watch source data events
+    const events = ['sourcedataloading', 'sourcedata', 'sourcedataabort', 'error'];
+    return {
+      on: () => events.forEach(type => this._map.on(type, check)),
+      off: () => events.forEach(type => this._map.off(type, check)),
+    };
+  }
+
   setAttributionFromService () {
     // check for the copyright text. the service 
     // may not actually have copyrightText as a key

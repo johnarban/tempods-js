@@ -7,6 +7,7 @@ import { ImageService } from '@/esri/frontier_ImageServiceLayer/ImageService';
 import { TempoDataService } from '@/esri/services/TempoDataService';
 import { type PointBounds } from '@/esri/geometry';
 import { serviceStatus } from '@/datasets/layerStatus';
+import { useTempoStore } from '@/stores/app';
 import type { LayerStatus } from '@/types';
 
 
@@ -24,6 +25,7 @@ export interface UseEsriLayer {
   renderOptions: Ref<RenderingRuleOptions>;
   serviceReady: Ref<boolean[]>;
   status: ComputedRef<LayerStatus>;
+  tilesLoading: Ref<boolean>;
 }
 
 export interface ImageSerivceLayerOptions {
@@ -116,7 +118,12 @@ export function useEsriImageServiceLayer(
     }
   }
   
-  const dynamicMapService = ref<ImageService | null>(null);
+  const dynamicMapService = shallowRef<ImageService | null>(null);
+
+  const store = useTempoStore();
+  const tilesLoading = ref(false);
+  let loadingListener: ReturnType<ImageService["onLoadingChange"]> | null = null;
+  watch(tilesLoading, (loading) => store.setLayerLoading(esriLayerId, loading));
   
   function onSourceLoad(e: MapSourceDataEvent) {
     // console.log(`sourcedata event for ${esriLayerId}: `);
@@ -155,6 +162,11 @@ export function useEsriImageServiceLayer(
     map.value = mMap;
     
     dynamicMapService.value = createImageService(mMap, url.value, esriOptions.value);
+    if (loadingListener !== null) {
+      loadingListener.off();
+    }
+    loadingListener = dynamicMapService.value.onLoadingChange(loading => tilesLoading.value = loading);
+    loadingListener.on();
 
     addLayer(mMap);
     // this event will run until the source is loaded
@@ -179,6 +191,11 @@ export function useEsriImageServiceLayer(
   
     
   function removeEsriSource() {
+    if (loadingListener !== null) {
+      loadingListener.off();
+    }
+    loadingListener = null;
+    tilesLoading.value = false;
     removeLayer(map.value as Map | null);
     if (map.value && map.value.getSource(esriLayerId)) {
       map.value.removeSource(esriLayerId);
@@ -230,6 +247,7 @@ export function useEsriImageServiceLayer(
     removeEsriSource,
     serviceReady,
     status,
+    tilesLoading,
   } as UseEsriLayer;
 }
 
