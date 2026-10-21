@@ -74,7 +74,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   // check if layer is loading. layersReady is about the state of the backing service
   const layersLoading = ref<Record<string, boolean>>({});
 
-  const onlyShowFirstLoad = false;
+  const onlyShowFirstLoad = true; // only show loading indicator the first time
   let firstLoadDone = false;
   const showLoadingIndicator = ref(false);
   // for now only check the no2-layer
