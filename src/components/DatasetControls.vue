@@ -76,7 +76,7 @@
             </div>
             <v-checkbox
               v-model="showSamplingPreviewMarkers"
-              class="show-sample-points-toggle"
+              class="dc-add-region-checkbox mt-2"
               label="Show sample points"
               density="compact"
               hide-details
@@ -84,6 +84,29 @@
               <template #append>
                 <popup-info-button
                   info-html="Checking this box will display the pixels of your selected region where data will be requested from the server. <p> When a large region is selected, we sample an evenly-spaced subset of approximately 30 pixels to shorten the data loading time. For each available time step, all the sampled data across the region will be averaged together.</p>"
+                  :width="popupCardWidth"
+                >
+                </popup-info-button>
+              </template>
+            </v-checkbox>
+            <v-checkbox
+                v-model="regionVisibility"
+                class="dc-add-region-checkbox"
+                label="Show regions"
+                density="compact"
+                hide-details
+            >
+            </v-checkbox>
+            <v-checkbox
+                v-model="showRegionActions"
+                class="dc-add-region-checkbox"
+                label="Show region actions"
+                density="compact"
+                hide-details
+            >
+              <template #append>
+                <popup-info-button
+                  info-html="Select this show the controls for copying and moving regions. If a region is used in a dataset, it may be copied but not moved. Once copied, the duplicate may be moved."
                   :width="popupCardWidth"
                 >
                 </popup-info-button>
@@ -103,13 +126,7 @@
                 :track-size="3"
               >
               </v-slider>
-              <v-checkbox
-                v-model="regionVisibility"
-                label="Show regions"
-                density="compact"
-                hide-details
-              >
-              </v-checkbox>
+              
               <!--
                 v-list would give this role="list", but the cards inside it are
                 buttons rather than list items (see below), and a list whose
@@ -171,7 +188,7 @@
                       }"
                     ></v-btn>
                     <v-btn
-                      v-if="region.geometryType === 'rectangle'"
+                      v-if="region.geometryType === 'rectangle' && showRegionActions"
                       variant="plain"
                       v-tooltip:top="'Duplicate and move the copy'"
                       icon="mdi-content-copy"
@@ -183,7 +200,7 @@
                       }"
                     ></v-btn>
                     <v-btn
-                      v-if="region.geometryType === 'rectangle' && !store.regionHasDatasets(region as UnifiedRegionType)"
+                      v-if="region.geometryType === 'rectangle' && !store.regionHasDatasets(region as UnifiedRegionType) && showRegionActions"
                       variant="plain"
                       v-tooltip:top="'Move'"
                       icon="mdi-cursor-move"
@@ -618,6 +635,7 @@ const {
   focusRegion,
   focusCardId,
   showSamplingPreviewMarkers,
+  showRegionActions,
   regionOpacity,
   regionVisibility,
   tempoRed,
@@ -1021,8 +1039,9 @@ function handlePlotClick(value: {x: number | string | Date | null, y: number, cu
   font-size: 10pt;
 }
 
-.show-sample-points-toggle {
+.dc-add-region-checkbox {
   width: fit-content;
+  margin-bottom: -.25em;
 }
 
 :deep(.info-button) {

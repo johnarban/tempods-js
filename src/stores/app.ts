@@ -56,6 +56,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const showFieldOfRegard = ref(false);
   const showRoads = ref(true);
   const showSamplingPreviewMarkers = ref(false);
+  const showRegionActions = ref(false);
   
   const showAdvancedLayers = ref(false);
   const showRGBMode = ref(false);
@@ -479,9 +480,10 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     showFieldOfRegard,
     showRoads,
     showSamplingPreviewMarkers,
+    showRegionActions,
     showAdvancedLayers,
     showRGBMode,
-
+    
     showAggregationControls,
 
     datasetControlsOpen,
