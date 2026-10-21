@@ -1,4 +1,4 @@
-import { ref, type MaybeRef, type Ref } from "vue";
+import { ref, toRef, watch, type MaybeRef, type Ref } from "vue";
 import { GeoJSONSource, LngLat, Map, MapMouseEvent } from "maplibre-gl";
 import { v4 } from "uuid";
 
@@ -14,10 +14,27 @@ export function useRectangleSelection(
 ) {
 
   let rectangleSource: GeoJSONSource | null = null;
-  let rectangleLayer: LayerType | undefined = undefined;
+  let rectangleLayer: LayerType | null = null;
   let startCoords: LngLat | null = null;
   let geoJson: GeoJSON.FeatureCollection;
   const uuid = v4();
+
+  // Takes the dashed outline of a drag in progress off the map
+  function removeOutline() {
+    const mMap = map.value;
+    if (mMap !== null) {
+      if (rectangleLayer) {
+        mMap.removeLayer(rectangleLayer.id);
+      }
+      if (rectangleSource) {
+        mMap.removeSource(rectangleSource.id);
+      }
+    }
+    // fully reset the state.
+    rectangleLayer = null;
+    rectangleSource = null;
+    startCoords = null;
+  }
 
   const handler: SelectionHandler<MapMouseEvent, RectangleSelectionInfo> = {
 
@@ -90,13 +107,7 @@ export function useRectangleSelection(
         ymax: Math.max(startCoords.lat, eventCoords.lat),
       };
 
-      if (rectangleLayer) {
-        mMap.removeLayer(rectangleLayer.id);
-      }
-      if (rectangleSource) {
-        mMap.removeSource(rectangleSource.id);
-      }
-      startCoords = null;
+      removeOutline();
 
     },
 
@@ -149,6 +160,15 @@ export function useRectangleSelection(
     }
   };
 
-  return baseUseSelection({ map, handler, active });
+  // Escape (or the Cancel button) in the middle of a drag turns selection off
+  // before the mouseup can clean it up.
+  const activeRef = toRef(active);
+  watch(activeRef, (isActive: boolean) => {
+    if (!isActive) {
+      removeOutline();
+    }
+  });
+
+  return baseUseSelection({ map, handler, active: activeRef });
 
 }
