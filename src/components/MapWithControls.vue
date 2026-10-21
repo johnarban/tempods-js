@@ -55,6 +55,16 @@
         ></location-search>
       </div>
     </v-card>
+    <v-progress-linear
+      v-if="showLoadingIndicator"
+      indeterminate
+      :color="accentColor"
+      height="20"
+      class="text-body-2"
+      aria-label="Loading TEMPO NO₂ data"
+    >Loading TEMPO NO₂ data...</v-progress-linear>
+
+    
     
     <v-tooltip
         text="Change map height"
@@ -159,6 +169,8 @@ const {
   singleDateSelected,
   showAdvancedLayers,
   showRGBMode,
+  showLoadingIndicator,
+  accentColor,
 } = storeToRefs(store);
 
 const molecule = ref<MoleculeType>("no2");

@@ -12,14 +12,6 @@
     </div>
 
     <h1 id="title">TEMPO Lab: Investigate Air Quality</h1>
-    <!-- placeholder until we have a map overlay spinner -->
-    <v-progress-circular
-      v-if="showLoadingIndicator"
-      indeterminate
-      :color="accentColor2"
-      role="status"
-      aria-label="Loading data"
-    />
     <!-- <cds-dialog
       title="Time Series"
       v-model="samplesGraph"
@@ -253,7 +245,6 @@ const store = useTempoStore();
 const {
   accentColor2,
   showTourHint,
-  showLoadingIndicator,
 } = storeToRefs(store);
 
 const display = useDisplay();
