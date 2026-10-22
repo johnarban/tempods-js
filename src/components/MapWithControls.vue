@@ -39,7 +39,8 @@
         maplibre-layer-name="tempo-no2"
       />
 
-      <div v-if="showFieldOfRegard" class="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
+      <!-- don't show the legend, but keep it here as a reference for how to later -->
+      <!-- <div v-if="showFieldOfRegard" class="map-legend"><hr class="line-legend">TEMPO Field of Regard</div> -->
       <!-- show hide cloud data, disable if none is available -->
 
       <div class="location-and-sharing">

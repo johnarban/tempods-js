@@ -38,10 +38,12 @@
       <v-checkbox
         v-if="showAdvancedLayers"
         v-model="showFieldOfRegard"
-        label="Show TEMPO field of regard"
         density="compact"
         hide-details
       >
+      <template #label>
+        <div class="red-line"></div>TEMPO field of regard
+      </template>
       </v-checkbox>
     </div>
   </div>
@@ -79,5 +81,12 @@ const {
   list-style-type: disc;
   list-style-position: outside;
   margin-left: 1.2em;
+}
+
+.comparison-data-controls .red-line {
+  border: 1px solid red;
+  width: 3ch;
+  display: inline-block;
+  margin-inline: 1ch;
 }
 </style>
