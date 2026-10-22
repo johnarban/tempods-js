@@ -61,8 +61,8 @@
       :color="accentColor"
       height="20"
       class="text-body-2"
-      aria-label="Loading TEMPO NO₂ data"
-    >Loading TEMPO NO₂ data...</v-progress-linear>
+      aria-label="Loading map data"
+    >Loading map data...</v-progress-linear>
 
     
     
@@ -106,7 +106,7 @@
 import { computed, ref, shallowRef, toRaw, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
 import { useDisplay } from 'vuetify';
 import { storeToRefs } from "pinia";
-import { refDebounced } from "@vueuse/core";
+import { useTimeoutFn } from "@vueuse/core";
 import { MapBoxFeature, MapBoxFeatureCollection, MapBoxFeatureType, MapBoxForwardGeocodingOptions, geocodingInfoForSearch } from "@cosmicds/vue-toolkit";
 import { Map, GeoJSONSource, type StyleLayer } from "maplibre-gl";
 import { getTimezoneOffset } from "date-fns-tz";
@@ -171,11 +171,26 @@ const {
   showAdvancedLayers,
   showRGBMode,
   showLoadingIndicator,
+  firstLoadDone,
   accentColor,
 } = storeToRefs(store);
 
-// only show the loading bar if loading takes longer than 3 seconds, and hide it as soon as loading is done
-const loadingForAWhile = refDebounced(showLoadingIndicator, 3000);
+// only show loading bar if takes more than a second, or 5 seconds if it's not the first load
+// the timer starts when loading starts and is cancelled when it stops, so each load gets the full delay
+const loadingForAWhile = shallowRef(false);
+const debounceTimeout = computed(() => firstLoadDone.value ? 5000 : 1000);
+// the delay is read each time start() is called
+const loadingTimeout = useTimeoutFn(() => {
+  loadingForAWhile.value = true;
+}, debounceTimeout, { immediate: false });
+watch(showLoadingIndicator, (loading) => {
+  if (loading) {
+    loadingTimeout.start();
+  } else {
+    loadingTimeout.stop();
+    loadingForAWhile.value = false;
+  }
+});
 const showLoadingBar = computed(() => showLoadingIndicator.value && loadingForAWhile.value);
 
 const molecule = ref<MoleculeType>("no2");

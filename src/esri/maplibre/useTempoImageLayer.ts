@@ -124,9 +124,14 @@ export function useTempoLayer(esriLayerOptions: UseEsriTempoLayerOptions): UseEs
   const dynamicMapService = shallowRef<ImageService | null>(null);
 
   const tilesLoading = ref(false);
+  // the first tiles are requested before a date is set, so only report loading once we have one.
+  // watching dateSet too catches the date being set partway through a load
+  const dateSet = ref(false);
   let loadingListener: ReturnType<ImageService["onLoadingChange"]> | null = null;
-  watch(tilesLoading, (loading) => {
-    store.setLayerLoading(esriLayerId, loading);
+  watch([tilesLoading, dateSet], ([loading, hasDate]) => {
+    if (hasDate) {
+      store.setLayerLoading(esriLayerId, loading);
+    }
   });
   
   function onSourceLoad(e: MapSourceDataEvent) {
@@ -175,6 +180,7 @@ export function useTempoLayer(esriLayerOptions: UseEsriTempoLayerOptions): UseEs
       : svc.baseUrlArray[svc.baseUrlArray.length - 1];
 
     dynamicMapService.value = createImageService(mMap, url, options.value);
+    dateSet.value = false;
     if (loadingListener !== null) {
       loadingListener.off();
     }
@@ -224,6 +230,7 @@ export function useTempoLayer(esriLayerOptions: UseEsriTempoLayerOptions): UseEs
     }
 
     dynamicMapService.value.setDate(new Date(nearest), new Date(nearest * 2));
+    dateSet.value = true;
   }
   
   function updateEsriTimeRange() {

@@ -98,6 +98,7 @@ export class ImageService {
   }
 
   setDate (from, to) {
+    if (+this.esriServiceOptions.from === +from && +this.esriServiceOptions.to === +to) return;
     this.esriServiceOptions.from = from;
     this.esriServiceOptions.to = to;
     this._updateSource();

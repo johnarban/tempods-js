@@ -74,17 +74,19 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   // check if layer is loading. layersReady is about the state of the backing service
   const layersLoading = ref<Record<string, boolean>>({});
 
-  const onlyShowFirstLoad = true; // only show loading indicator the first time
-  let firstLoadDone = false;
+  const onlyShowFirstLoad = false; // only show loading indicator the first time
+  const firstLoadDone = ref(false);
   const showLoadingIndicator = ref(false);
+  const anyLayersLoading = computed(() => Object.values(layersLoading.value).some(v => v));
   // for now only check the no2-layer
-  watch(() => layersLoading.value["tempo-no2"], (loading) => {
-    if (onlyShowFirstLoad && firstLoadDone) {
+  watch(anyLayersLoading, (loading) => {
+    if (onlyShowFirstLoad && firstLoadDone.value) {
       return;
     }
+
     showLoadingIndicator.value = loading ?? false;
     if (!loading) {
-      firstLoadDone = true;
+      firstLoadDone.value = true;
     }
   });
 
@@ -536,6 +538,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     layersLoading,
     setLayerLoading,
     showLoadingIndicator,
+    firstLoadDone,
     layerAction,
     doLayerAction,
 
@@ -583,7 +586,7 @@ export function deserializeTempoStore(value: string, compressed: boolean): State
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "layersLoading", "showLoadingIndicator", "globalWarning", "layerAction", "showTourHint"]);
+const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "layersLoading", "showLoadingIndicator", "firstLoadDone", "globalWarning", "layerAction", "showTourHint"]);
 export function serializeTempoStore(store: TempoStore, compress?: boolean): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};
