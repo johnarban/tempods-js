@@ -1,7 +1,7 @@
 // Types
 
 import M, { GeoJSONSource, } from 'maplibre-gl';
-import { type MaybeRef, type Ref, toValue } from 'vue';
+import { type MaybeRef, type Raw, type Ref, toValue } from 'vue';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type Prettify<T> = { [K in keyof T]: T[K]; } & {};
@@ -122,7 +122,7 @@ export interface RectangleSelection {
   geometryType: 'rectangle';
   color: string;
   defaultColor: string;
-  source?: GeoJSONSource;
+  source?: Raw<GeoJSONSource>;
 }
 
 // Add to types.ts
@@ -133,7 +133,7 @@ export interface PointSelection {
   geometryType: 'point';
   color: string;
   defaultColor: string;
-  source?: GeoJSONSource;
+  source?: Raw<GeoJSONSource>;
 }
 
 export type AggValue = {

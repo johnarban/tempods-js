@@ -11,6 +11,7 @@
     "resolveJsonModule": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "baseUrl": ".",

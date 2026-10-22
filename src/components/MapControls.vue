@@ -186,7 +186,7 @@ const molecule = ref<MoleculeType>('no2');
 const radio = ref<number | null>(null);
 const touchscreen = supportsTouchscreen();
 
-const calendar = ref<typeof VueDatePicker | null>(null);
+const calendar = ref<InstanceType<typeof VueDatePicker> | null>(null);
 
 // The menu is teleported to <body> so the scrolling controls panel can't clip it,
 // but that also drops it at the end of the document's tab order: measured 8 Tab

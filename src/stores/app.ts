@@ -1,5 +1,5 @@
 import { defineStore, type StateTree } from "pinia";
-import { computed, ref, watch, toRaw } from "vue";
+import { computed, ref, watch, toRaw, shallowRef, markRaw, type Raw } from "vue";
 import { v4 } from "uuid";
 import type { Map } from "maplibre-gl";
 import { isComputedRef } from "@/utils/vue";
@@ -34,7 +34,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const timeSliderUsedCount = ref(0);
   const opacitySliderUsedCount = ref(0);
 
-  const maps = ref<Map[]>([]);
+  const maps = shallowRef<Raw<Map>[]>([]);
 
   const datasetControlsOpen = ref(false);
   const layerControlsOpen = ref(true);
@@ -427,14 +427,11 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   }
 
   function registerMap(map: Map) {
-    maps.value.push(map);
+    maps.value = [...maps.value, markRaw(map)];
   }
 
   function deregisterMap(map: Map) {
-    const index = maps.value.findIndex(m => m === map);
-    if (index > -1) {
-      maps.value.splice(index);
-    }
+    maps.value = maps.value.filter(m => m !== map);
   }
 
   function reset() {
@@ -587,7 +584,7 @@ export function deserializeTempoStore(value: string, compressed: boolean): State
 }
 
 const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "layersLoading", "showLoadingIndicator", "globalWarning", "layerAction", "showTourHint"]);
-export function serializeTempoStore(store: TempoStore, compress: boolean): string {
+export function serializeTempoStore(store: TempoStore, compress?: boolean): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};
   for (const [key, value] of Object.entries(store.$state)) {

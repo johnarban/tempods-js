@@ -44,6 +44,7 @@
     "less": "^4.2.0",
     "less-loader": "^12.0.0",
     "typescript": "^5.3.3",
+    "vue-tsc": "^3.3.13",
     "webpack": "^5.89.0",
     "webpack-dev-middleware": "^7.2.1"
   },
@@ -51,7 +52,8 @@
     "build": "vue-cli-service build",
     "clean": "rimraf dist",
     "lint": "vue-cli-service lint src --no-fix",
-    "serve": "vue-cli-service serve"
+    "serve": "vue-cli-service serve",
+    "typecheck": "vue-tsc --noEmit"
   },
   "name": "@cosmicds/tempo-lab",
   "packageManager": "yarn@4.12.0"
