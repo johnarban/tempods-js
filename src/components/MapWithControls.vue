@@ -798,6 +798,8 @@ watch(moveInfo, (info: RectangleSelectionInfo | null) => {
     }
     focusCardId.value = region.id;
   }
+  // if the region is placed, set to null. 
+  regionToMove.value = null;
   moveSelectionActive.value = false;
 });
 
