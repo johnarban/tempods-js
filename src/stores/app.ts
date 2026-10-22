@@ -527,8 +527,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     deleteDataset,
     duplicateRegion,
     startMovingRegion,
-    cancelMovingRegion,
-    movingRegionIsCopy,
 
     userSelectedLocations,
     userSelectedTimezones,
