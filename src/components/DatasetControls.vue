@@ -83,9 +83,17 @@
             >
               <template #append>
                 <popup-info-button
-                  info-html="Checking this box will display the pixels of your selected region where data will be requested from the server. <p> When a large region is selected, we sample an evenly-spaced subset of approximately 30 pixels to shorten the data loading time. For each available time step, all the sampled data across the region will be averaged together.</p>"
                   :width="popupCardWidth"
                 >
+                  <template #info>
+                    <v-card-text class="pa-2">
+                      <p>
+                        Checking this box will display the pixels of your selected region where data will be requested from the server.
+                      </p> 
+                      <p class="mt-3"> 
+                        When a large region is selected, we sample an evenly-spaced subset of approximately 50 pixels to shorten the data loading time. For each available time step, all the sampled data across the region will be averaged together</p>
+                    </v-card-text>
+                  </template>
                 </popup-info-button>
               </template>
             </v-checkbox>
@@ -106,9 +114,18 @@
             >
               <template #append>
                 <popup-info-button
-                  info-html="Select this show the controls for copying and moving regions. If a region is used in a dataset, it may be copied but not moved. Once copied, the duplicate may be moved."
                   :width="popupCardWidth"
                 >
+                  <template #info>
+                    <v-card-text class="pa-2">
+                      <p>
+                        Select this to show the controls for copying <v-icon icon="mdi-content-copy" size="small" /> and moving <v-icon icon="mdi-cursor-move" size="small" /> regions.
+                      </p> 
+                      <p class="mt-3">
+                        If a region is used in a dataset, it may be copied but not moved. Once copied, the duplicate may be moved.
+                      </p>
+                    </v-card-text>
+                  </template>
                 </popup-info-button>
               </template>
             </v-checkbox>
