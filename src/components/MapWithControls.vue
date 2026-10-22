@@ -55,15 +55,15 @@
           @error="(error: string) => searchErrorMessage = error"
         ></location-search>
       </div>
+      <v-progress-linear
+        v-if="showLoadingBar"
+        indeterminate
+        :color="accentColor"
+        height="20"
+        class="text-body-2 loading-data-progress-bar position-absolute left-0 right-0"
+        aria-label="Loading map data"
+      >Loading map data...</v-progress-linear>
     </v-card>
-    <v-progress-linear
-      v-if="showLoadingBar"
-      indeterminate
-      :color="accentColor"
-      height="20"
-      class="text-body-2"
-      aria-label="Loading map data"
-    >Loading map data...</v-progress-linear>
 
     
     
@@ -1186,6 +1186,14 @@ onMounted(() => {
 
 .panel-size-dragging, .panel-size-dragging .handle.vertical-handle {
   cursor: row-resize !important;
+}
+
+.loading-data-progress-bar {
+  top: 48px !important; // header height
+}
+
+.loading-data-progress-bar  .v-progress-linear__content {
+  color: black !important;
 }
 
 
