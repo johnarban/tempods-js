@@ -433,25 +433,13 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     addRegion(copy);
     return copy;
   }
-  
-  const movingRegionIsCopy = ref(false);
-  function startMovingRegion(region: UnifiedRegion, isCopy: boolean = false) {
+
+
+  function startMovingRegion(region: UnifiedRegion) {
     regionToMove.value = region.id;
-    movingRegionIsCopy.value = isCopy;
     selectionActive.value = "move";
   }
-  
-  function cancelMovingRegion() {
-    if (movingRegionIsCopy.value) {
-      const region = regions.value.find(r => r.id === regionToMove.value) as UnifiedRegion;
-      if (region !== undefined) {
-        deleteRegion(region);
-      }
-      movingRegionIsCopy.value = false;
-    }
-    // remove the region that was being moved from the map, and reset the state
-    regionToMove.value = null;
-  }
+
 
   function registerMap(map: Map) {
     maps.value.push(map);

@@ -47,7 +47,7 @@
           <template #title>
             My  Regions
             <popup-info-button
-                info-text="Click the region card to go to that region on the map. Click the pen to rename a region. Click the trash can to delete a region. If an existing dataset is using a region, it cannot be moved or deleted. To move a region, click the arrows, then click the map where the region should go: a dashed outline shows where it will land. The copy button makes a copy of a region and starts moving the copy. From the keyboard, the outline stays in the centre of the map: move the map under it with the arrow keys and the + and - keys, then press Enter to place the region, or Esc to stop."
+                info-text="Click the region card to go to that region on the map. Click the pen to rename a region. Click the trash can to delete a region. If an existing dataset is using a region, it cannot be moved or deleted. To move a region, click the arrows, then click the map where the region should go: a dashed outline shows where it will land. The copy button makes a copy of a region, at the same location as the original, which you can then move if you'd like. From the keyboard, the outline stays in the centre of the map: move the map under it with the arrow keys and the + and - keys, then press Enter to place the region, or Esc to stop."
                 :width="popupCardWidth"
               >
               </popup-info-button>
@@ -207,13 +207,18 @@
                     <v-btn
                       v-if="region.geometryType === 'rectangle' && showRegionActions"
                       variant="plain"
-                      v-tooltip:top="'Duplicate and move the copy'"
+                      v-tooltip:top="'Duplicate'"
                       icon="mdi-content-copy"
                       color="white"
                       size="small"
                       density="compact"
                       @click.stop="() => {
-                        store.startMovingRegion(store.duplicateRegion(region as UnifiedRegionType), true);
+                        // Copying cancels a move in progress, so the next click
+                        // on the map doesn't still place the other region
+                        if (selectionActive === 'move') {
+                          selectionActive = null;
+                        }
+                        focusCardId = store.duplicateRegion(region as UnifiedRegionType).id;
                       }"
                     ></v-btn>
                     <v-btn

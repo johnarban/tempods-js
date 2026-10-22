@@ -162,7 +162,6 @@ const {
   showAdvancedLayers,
   showRGBMode,
 } = storeToRefs(store);
-const { cancelMovingRegion } = store;
 
 const molecule = ref<MoleculeType>("no2");
 const currentTempoDataService = computed(() => store.getTempoDataService(molecule.value));
@@ -798,8 +797,6 @@ watch(moveInfo, (info: RectangleSelectionInfo | null) => {
     }
     focusCardId.value = region.id;
   }
-  // if the region is placed, set to null. 
-  regionToMove.value = null;
   moveSelectionActive.value = false;
 });
 
@@ -807,7 +804,7 @@ watch(moveInfo, (info: RectangleSelectionInfo | null) => {
 // another selection
 watch(moveSelectionActive, (active: boolean) => {
   if (!active) {
-    cancelMovingRegion();
+    regionToMove.value = null;
   }
 });
 
