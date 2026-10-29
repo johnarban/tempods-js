@@ -188,7 +188,7 @@ const { selectionInfo: pointInfo } = usePointSelection(map as MapTypeRef, pointS
 type UnifiedRegionType = typeof regions.value[number];
 
 const moveSelectionActive = createSelectionComputed("move");
-const regionBeingMoved = computed(() => regions.value.find(r => r.id === regionToMove.value) ?? null);
+const regionBeingMoved = computed(() => (regions.value as UnifiedRegionType[]).find(r => r.id === regionToMove.value) ?? null);
 const { selectionInfo: moveInfo } = useRegionMove(
   map as MapTypeRef,
   computed(() => regionBeingMoved.value?.geometryType === "rectangle" ? regionBeingMoved.value.geometryInfo : null),
@@ -785,17 +785,16 @@ watch(pointInfo, (info: PointSelectionInfo | null) => {
   pointSelectionActive.value = false;
 });
 
-// updateRegionLayers only adds and removes layers by region id, so a region
-// that changes geometry needs its layer redrawn here
+// when we move the selection - replace that one with a region  with a new id
 watch(moveInfo, (info: RectangleSelectionInfo | null) => {
   const region = regionBeingMoved.value;
   if (info !== null && region !== null && region.geometryType === "rectangle") {
-    region.geometryInfo = info;
-    const source = regionLayers[region.id];
-    if (source) {
-      updateRectangleBounds(source, info);
+    const moved: UnifiedRegionType = { ...region, id: v4(), geometryInfo: info };
+    const currentIndex = regions.value.indexOf(region);
+    if (currentIndex !== -1 ) {
+      regions.value.splice(currentIndex, 1, moved);
     }
-    focusCardId.value = region.id;
+    focusCardId.value = moved.id;
   }
   moveSelectionActive.value = false;
 });
