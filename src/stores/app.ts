@@ -33,6 +33,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const playButtonClickedCount = ref(0);
   const timeSliderUsedCount = ref(0);
   const opacitySliderUsedCount = ref(0);
+  const webGlDisabled = ref(false);
 
   const maps = ref<Map[]>([]);
 
@@ -427,6 +428,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     debugMode,
     globalWarning,
     showTourHint,
+    webGlDisabled,
 
     accentColor,
     accentColor2,
@@ -562,7 +564,7 @@ export function deserializeTempoStore(value: string, compressed: boolean): State
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint"]);
+const OMIT = new Set(["debugMode", "webGlDisabled" ,  "selectionActive", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint"]);
 export function serializeTempoStore(store: TempoStore, compress: boolean): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};

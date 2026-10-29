@@ -8,7 +8,7 @@ const retinaParam = scale > 1 ? '@2x' : '';
 
 export interface MapLibreComposable {
     map: Ref<M.Map | null>;
-    createMap: () => Ref<M.Map>;
+    createMap: () => Ref<M.Map | null>;
     setView: (latlng: LatLngPair, zoom: number) => void;
     resetView: () => void;
     cleanupMap: () => void;
@@ -158,26 +158,32 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
   //   zoom: options.zoom ?? 1 // starting zoom
   // }  
   // https://github.com/CartoDB/basemap-styles other "basemap" styles
-  function createMap(): Ref<M.Map> {
-    const _map = new M.Map({
-      container: id,
-      // style: 'https://tiles.openfreemap.org/styles/liberty', // style URL
-      style: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
-      center: options.loc ? [options.loc[1], options.loc[0]] : [0, 0], // starting position [lng, lat]
-      zoom: options.zoom ?? 1, // starting zoom,
-      attributionControl: false,
+  function createMap(): Ref<M.Map | null> {
+    try {
+      const _map = new M.Map({
+        container: id,
+        // style: 'https://tiles.openfreemap.org/styles/liberty', // style URL
+        style: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
+        center: options.loc ? [options.loc[1], options.loc[0]] : [0, 0], // starting position [lng, lat]
+        zoom: options.zoom ?? 1, // starting zoom,
+        attributionControl: false,
+        
+      }).addControl(new AttributionControl({
+        compact: true,
+      })).addControl(new ScaleControl({ // https://maplibre.org/maplibre-gl-js/docs/API/classes/ScaleControl/
+        maxWidth: 100,
+        unit: 'metric',
+      }), 'bottom-right');
+    
+      _map.on('style.load', setupMap);
       
-    }).addControl(new AttributionControl({
-      compact: true,
-    })).addControl(new ScaleControl({ // https://maplibre.org/maplibre-gl-js/docs/API/classes/ScaleControl/
-      maxWidth: 100,
-      unit: 'metric',
-    }), 'bottom-right');
-    
-    _map.on('style.load', setupMap);
-    
-    map.value = _map;
-    return map as unknown as Ref<M.Map>;
+      map.value = _map;
+      console.log("Map created:", map.value);
+      return map as unknown as Ref<M.Map>;
+    } catch (error) {
+      console.error("Error creating map:", error);
+      return map;
+    }
   }
 
   function setView(latlng: LatLngPair, zoom: number) {

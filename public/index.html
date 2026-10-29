@@ -11,6 +11,39 @@
   
     gtag('config', 'G-C2ELSYY9VC');
   </script>
+  <script>
+    // disabled for now. add onload to body onload event to overlay the app
+    // webgl2 detection script from https://stackoverflow.com/questions/11809064/how-to-detect-webgl-support
+    function isWebGL2Enabled() {
+      try {
+        var canvas = document.createElement("canvas");
+        const gl = canvas.getContext("webgl2") || canvas.getContext("experimental-webgl2");
+        return !!gl;
+      } catch (e) {
+        return false;
+      }
+    }
+    const onload = () => {
+    const webgl2Enabled = isWebGL2Enabled();
+      if (!webgl2Enabled) {
+        console.error("WebGL2 is not enabled in this browser. Some features may not work.");
+        const el = document.createElement("div");
+        el.style.position = "fixed";
+        el.style.top = "0";
+        el.style.left = "0";
+        el.style.right = "0";
+        el.style.bottom = "0";
+        el.style.backgroundColor = "red";
+        el.style.color = "white";
+        el.style.textAlign = "center";
+        el.style.padding = "10px";
+        el.style.zIndex = "10000";
+        el.innerText = "Warning: WebGL2 is not enabled in this browser. Some features may not work.";
+        document.body.appendChild(el);  
+        window.isWebGL2Enabled = false;
+      }
+    }
+  </script>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">

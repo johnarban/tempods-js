@@ -1,7 +1,20 @@
 <template>
   <!-- this will automatically gets the class maplibregl-map added to it -->
-  <div :id="mapID" class="tempo-map" :style="{ '--width': width, '--height': height }">
+  <div v-if="supportsWebGL2 || map !== null" :id="mapID" class="tempo-map" :style="{ '--width': width, '--height': height }">
     <slot></slot>
+  </div>
+  <div v-else-if="!supportsWebGL2" class="tempo-map" :style="{ '--width': width, '--height': height }">
+    <div class="web-gl-warning-and-info">
+      This browser {{ webGlSupported ? 'supports ' : 'does not support ' }} WebGL 2, {{ webGlSupported ? 'but' : 'so' }} it is {{ webglEnabled ? 'enabled' : 'not enabled' }}.
+      <p>This app requires WebGL 2</p>
+      <p class="mt-2">Check your browser's settings and enable WebGL 2 ("hardward or graphics acceleration" on some browsers).</p>
+      <!-- list summaries for Chrome, Firefox, Safari -->
+      <ul class="mt-2">
+        <li>Chrome: Go to "Settings > System" or search for "graphics acceleration". Turn it on</li>
+        <li>Firefox: Go to <code>about:config</code> in the address bar, and make sure both `webgl.disabled` is false. If it is still not working set `gfx.webrendered` to true.</li>
+        <li>Modern Safari (macOS Catalina and later) force hardware acceletation to remain enabled. On older versions you may find the setting under "Settings > Advanced"</li>
+      </ul>
+    </div>
   </div>
 </template>
   
@@ -12,6 +25,19 @@ import type { PropType } from 'vue';
 import type { Map, MapEventType, Listener } from 'maplibre-gl';
 import { useMap } from "@/composables/maplibre/useMap";
 import { usezoomhome } from '@/composables/maplibre/useZoomHome';
+
+function isWebGL2Enabled(): boolean {
+  // It doesn't seem like there's a better way to do this than just to try and get a context
+  // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/By_example/Detect_WebGL
+  // NB: The engine specifically wants a webgl2 context
+  const canvas = document.createElement("canvas");
+  const gl = canvas.getContext("webgl2");
+  return gl instanceof WebGL2RenderingContext;
+}
+
+const webglEnabled = isWebGL2Enabled();
+const webGlSupported = !!window.WebGL2RenderingContext;
+const supportsWebGL2 = webglEnabled && webGlSupported;
 
 
 // should be using a defined Prop type and widthDefaults, but 
@@ -149,6 +175,11 @@ onMounted(() => {
 
   const mMap = createMap(); // just use the return value instead of map.value. eases type checking
   
+  if (mMap.value === null) {
+    console.error("Failed to create map. Map object is null.");
+    return;
+  }
+  
   usezoomhome(mMap, props.home.loc, props.home.zoom, () => {
     emit('zoomhome');
   });
@@ -215,6 +246,19 @@ defineExpose(exposedMapApi);
 
 .tempo-map canvas.maplibregl-canvas {
   background-color: whitesmoke;
+}
+
+.tempo-map > .web-gl-warning-and-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: rgb(234, 89, 89);
+  margin: 1rem;
+}
+
+ul {
+  list-style-position: inside;
 }
 
 </style>
