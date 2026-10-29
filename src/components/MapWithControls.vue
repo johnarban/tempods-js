@@ -108,7 +108,7 @@ import { colorbarOptions } from "@/esri/ImageLayerConfig";
 import { useTempoStore } from "@/stores/app";
 import { useLocationMarker } from "@/composables/maplibre/useMarker";
 import { useRectangleSelection } from "@/composables/maplibre/useRectangleSelection";
-import { addRectangleLayer, addPointLayer, regionBounds, fitBounds, removeRectangleLayer, removePointLayer, updateRectangleBounds } from "@/composables/maplibre/utils";
+import { addRectangleLayer, addPointLayer, regionBounds, fitBounds, removeRectangleLayer, removePointLayer } from "@/composables/maplibre/utils";
 import { usePointSelection } from "@/composables/maplibre/usePointSelection";
 import { useRegionMove } from "@/composables/maplibre/useRegionMove";
 import { COLORS } from "@/utils/color";

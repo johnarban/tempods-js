@@ -602,7 +602,7 @@ export function deserializeTempoStore(value: string, compressed: boolean): State
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "regionToMove", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint", "movingRegionIsCopy"]);
+const OMIT = new Set(["debugMode", "selectionActive", "regionToMove", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint"]);
 export function serializeTempoStore(store: TempoStore, compress: boolean): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};
