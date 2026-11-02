@@ -6,7 +6,7 @@
     <v-card-text class="d-flex flex-column ga-3">
       <!-- Region Picker -->
       <v-select
-        :items="regions.map(r => ({ title: r.name, value: r }))"
+        :items="reversedRegionItems"
         :model-value="draftUserDataset.region"
         @update:model-value="setDraftSelectionRegion($event as RectangleSelectionType)"
         label="Region"
@@ -22,7 +22,7 @@
 
       <!-- Time Range Picker: offer Effective (current day/custom) and any active custom ranges -->
       <v-select
-        :items="timeRanges"
+        :items="reversedTimeRanges"
         v-model="selectedTimeRange"
         label="Time Range"
         :disabled="disabled?.timeRange"
@@ -32,15 +32,15 @@
         return-object
         bg-color="background"
       >
-        <template #item="{ index, props }">
-          <v-list-item v-bind="{ ...props, title: (props.value as any).name }">
+        <template #item="{ props }">
+          <v-list-item v-bind="{ ...props, title: (props.value as TimeRange).name }">
             <template #title></template>
             <template #default>
-              <v-list-item-title>{{ timeRanges[index].name }}</v-list-item-title>
+              <v-list-item-title>{{ (props.value as TimeRange).name }}</v-list-item-title>
               <v-list-item-subtitle
-                v-if="timeRanges[index].name === 'Displayed Day'"
+                v-if="((props.value as TimeRange).name) === 'Displayed Day'"
               >
-                {{ new Date((timeRanges[index].range as MillisecondRange).start).toDateString() }}
+                {{ new Date(((props.value as TimeRange).range as MillisecondRange).start).toDateString() }}
               </v-list-item-subtitle>
             </template>
           </v-list-item>
@@ -122,6 +122,15 @@ const emit = defineEmits<{
 }>();
 
 const loading = ref(false);
+
+function reversed<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  copy.reverse();
+  return copy;
+}
+
+const reversedRegionItems = computed(() => reversed(props.regions.map(r => ({ title: r.name, value: r }))));
+const reversedTimeRanges = computed(() => reversed(props.timeRanges));
 
 type RectangleSelectionType = RectangleSelection;
 

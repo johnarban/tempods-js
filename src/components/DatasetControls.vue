@@ -4,36 +4,6 @@
       <p>
         Select a Region, Time Range, and Molecule to create a dataset of your choice!
       </p>
-    <v-dialog
-      v-model="showConfirmReset"
-      max-width="35%"
-    >
-      <v-card class="popup-card--outline">
-        <v-card-text>
-          Are you sure you want to delete all of your selections? 
-          This will remove all of your regions, time ranges, 
-          and datasets, and cannot be undone.
-        </v-card-text>
-        <v-card-actions>
-          <v-btn
-            color="error"
-            @click.stop="showConfirmReset = false"
-          >
-            No
-          </v-btn>
-          <v-btn
-            color="success"
-            @click.stop="() => {
-              store.reset();
-              serializeTempoStore(store);
-              showConfirmReset = false;
-            }"
-          >
-            Yes
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
       <v-expansion-panels
         v-model="openPanels"
         variant="accordion"
@@ -47,7 +17,7 @@
           <template #title>
             My  Regions
             <popup-info-button
-                info-text="Click the region card to go to that region on the map. Click the pen to rename a region. Click the trash can to delete a region. If an existing dataset is using a region, it cannot be deleted."
+                info-text="Click the region card to go to that region on the map. Click the pen to rename a region. Click the trash can to delete a region. If an existing dataset is using a region, it cannot be moved or deleted. To move a region, click the arrows, then click the map where the region should go: a dashed outline shows where it will land. The copy button makes a copy of a region, at the same location as the original, which you can then move if you'd like. From the keyboard, the outline stays in the centre of the map: move the map under it with the arrow keys and the + and - keys, then press Enter to place the region, or Esc to stop."
                 :width="popupCardWidth"
               >
               </popup-info-button>
@@ -76,16 +46,56 @@
             </div>
             <v-checkbox
               v-model="showSamplingPreviewMarkers"
-              class="show-sample-points-toggle"
+              class="dc-add-region-checkbox mt-2"
               label="Show sample points"
               density="compact"
               hide-details
             >
               <template #append>
                 <popup-info-button
-                  info-html="Checking this box will display the pixels of your selected region where data will be requested from the server. <p> When a large region is selected, we sample an evenly-spaced subset of approximately 30 pixels to shorten the data loading time. For each available time step, all the sampled data across the region will be averaged together.</p>"
                   :width="popupCardWidth"
                 >
+                  <template #info>
+                    <v-card-text class="pa-2">
+                      <p>
+                        Checking this box will display the pixels of your selected region where data will be requested from the server.
+                      </p> 
+                      <p class="mt-3"> 
+                        When a large region is selected, we sample an evenly-spaced subset of approximately 50 pixels to shorten the data loading time. For each available time step, all the sampled data across the region will be averaged together</p>
+                    </v-card-text>
+                  </template>
+                </popup-info-button>
+              </template>
+            </v-checkbox>
+            <v-checkbox
+                v-model="regionVisibility"
+                class="dc-add-region-checkbox"
+                label="Show regions"
+                density="compact"
+                hide-details
+            >
+            </v-checkbox>
+            <v-checkbox
+                v-model="showRegionActions"
+                class="dc-add-region-checkbox"
+                label="Show region actions"
+                density="compact"
+                hide-details
+            >
+              <template #append>
+                <popup-info-button
+                  :width="popupCardWidth"
+                >
+                  <template #info>
+                    <v-card-text class="pa-2">
+                      <p>
+                        Select this to show the controls for copying <v-icon icon="mdi-content-copy" size="small" /> and moving <v-icon icon="mdi-cursor-move" size="small" /> regions.
+                      </p> 
+                      <p class="mt-3">
+                        If a region is used in a dataset, it may be copied but not moved. Once copied, the duplicate may be moved.
+                      </p>
+                    </v-card-text>
+                  </template>
                 </popup-info-button>
               </template>
             </v-checkbox>
@@ -103,13 +113,7 @@
                 :track-size="3"
               >
               </v-slider>
-              <v-checkbox
-                v-model="regionVisibility"
-                label="Show regions"
-                density="compact"
-                hide-details
-              >
-              </v-checkbox>
+              
               <!--
                 v-list would give this role="list", but the cards inside it are
                 buttons rather than list items (see below), and a list whose
@@ -168,6 +172,40 @@
                       density="compact"
                       @click.stop="(event: MouseEvent | KeyboardEvent) => {
                         editRegionName(region as UnifiedRegionType);
+                      }"
+                    ></v-btn>
+                    <v-btn
+                      v-if="region.geometryType === 'rectangle' && showRegionActions"
+                      variant="plain"
+                      v-tooltip:top="'Duplicate'"
+                      icon="mdi-content-copy"
+                      color="white"
+                      size="small"
+                      density="compact"
+                      @click.stop="() => {
+                        // Copying cancels a move in progress, so the next click
+                        // on the map doesn't still place the other region
+                        if (selectionActive === 'move') {
+                          selectionActive = null;
+                        }
+                        focusCardId = store.duplicateRegion(region as UnifiedRegionType).id;
+                      }"
+                    ></v-btn>
+                    <v-btn
+                      v-if="region.geometryType === 'rectangle' && !store.regionHasDatasets(region as UnifiedRegionType) && showRegionActions"
+                      variant="plain"
+                      v-tooltip:top="'Move'"
+                      icon="mdi-cursor-move"
+                      color="white"
+                      size="small"
+                      density="compact"
+                      :active="selectionActive === 'move' && regionToMove === region.id"
+                      @click.stop="() => {
+                        if (selectionActive === 'move' && regionToMove === region.id) {
+                          selectionActive = null;
+                        } else {
+                          store.startMovingRegion(region as UnifiedRegionType);
+                        }
                       }"
                     ></v-btn>
                     <v-tooltip
@@ -352,7 +390,7 @@
                 <v-btn
                 v-if="datasets.length > 1"
                 :disabled="datasets.length === 0 || !datasets.every(d => d.samples || d.plotlyDatasets)"
-                :color="allDatasetSelection ? '#333': '#ffcc33'" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
+                :color="allDatasetSelection ? '#333' : accentColor2" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
                 {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
               </v-btn>
           </div>
@@ -361,22 +399,6 @@
     </v-expansion-panels>
   </div>
   
-  <div class="d-flex flex-column justify-center ga-1">
-    
-    
-    
-    <!--  -->
-    <hr class="ma-2" style="width: 100%;"/>
-    <v-btn
-    v-if="regions.length > 0 || timeRanges.length > 1"
-      color="#a63a3f"
-      class="mx-2"
-      @click.stop="showConfirmReset = true"
-      size="small"
-      >
-      Delete ALL selections
-    </v-btn>
-  </div>
   
   <v-dialog
   v-model="showEditRegionNameDialog"
@@ -553,7 +575,7 @@ import { v4 } from "uuid";
 
 import type { MillisecondRange, TimeRange, UserDataset, UnifiedRegion, MoleculeType } from "../types";
 import type { TimeRangeConfig } from "@/date_time_range_selection/date_time_range_generators";
-import { serializeTempoStore, useTempoStore } from "../stores/app";
+import { useTempoStore } from "../stores/app";
 import { MOLECULE_OPTIONS } from "../esri/utils";
 import { HIDDEN_BAD_LAYERS } from "@/datasets/layerData";
 import { atleast1d } from "../utils/atleast1d";
@@ -585,9 +607,11 @@ const {
   singleDateSelected,
   uniqueDays,
   selectionActive,
+  regionToMove,
   focusRegion,
   focusCardId,
   showSamplingPreviewMarkers,
+  showRegionActions,
   regionOpacity,
   regionVisibility,
   tempoRed,
@@ -626,7 +650,6 @@ const openPanels = ref<number[]>([0, 1, 2]);
 const openSelection = ref<string | null>(null);
 const tableSelection = ref<UserDataset | null>(null);
 const currentlyEditingDataset = ref<UserDataset | null>(null);
-const showConfirmReset = ref(false);
 const showMultiPlot = ref(false);
 
 const createTimeRangeActive = ref(false);
@@ -991,8 +1014,9 @@ function handlePlotClick(value: {x: number | string | Date | null, y: number, cu
   font-size: 10pt;
 }
 
-.show-sample-points-toggle {
+.dc-add-region-checkbox {
   width: fit-content;
+  margin-bottom: -.25em;
 }
 
 :deep(.info-button) {

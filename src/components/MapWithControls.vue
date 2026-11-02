@@ -122,6 +122,7 @@ import { useLocationMarker } from "@/composables/maplibre/useMarker";
 import { useRectangleSelection } from "@/composables/maplibre/useRectangleSelection";
 import { addRectangleLayer, addPointLayer, regionBounds, fitBounds, removeRectangleLayer, removePointLayer } from "@/composables/maplibre/utils";
 import { usePointSelection } from "@/composables/maplibre/usePointSelection";
+import { useRegionMove } from "@/composables/maplibre/useRegionMove";
 import { COLORS } from "@/utils/color";
 import { EsriSampler } from "@/esri/services/sampling";
 import { useMultiMarker } from '@/composables/maplibre/useMultiMarker';
@@ -163,6 +164,7 @@ const {
   maxSampleCount,
   focusRegion,
   focusCardId,
+  regionToMove,
   initState,
   homeState,
   showFieldOfRegard,
@@ -217,6 +219,15 @@ const { selectionInfo: rectangleInfo } = useRectangleSelection(map as MapTypeRef
 const { selectionInfo: pointInfo } = usePointSelection(map as MapTypeRef, pointSelectionActive);
 
 type UnifiedRegionType = typeof regions.value[number];
+
+const moveSelectionActive = createSelectionComputed("move");
+const regionBeingMoved = computed(() => (regions.value as UnifiedRegionType[]).find(r => r.id === regionToMove.value) ?? null);
+const { selectionInfo: moveInfo } = useRegionMove(
+  map as MapTypeRef,
+  computed(() => regionBeingMoved.value?.geometryType === "rectangle" ? regionBeingMoved.value.geometryInfo : null),
+  "red",
+  moveSelectionActive,
+);
 
 const display = useDisplay();
 
@@ -807,6 +818,28 @@ watch(pointInfo, (info: PointSelectionInfo | null) => {
   pointSelectionActive.value = false;
 });
 
+// when we move the selection - replace that one with a region  with a new id
+watch(moveInfo, (info: RectangleSelectionInfo | null) => {
+  const region = regionBeingMoved.value;
+  if (info !== null && region !== null && region.geometryType === "rectangle") {
+    const moved: UnifiedRegionType = { ...region, id: v4(), geometryInfo: info };
+    const currentIndex = regions.value.indexOf(region);
+    if (currentIndex !== -1 ) {
+      regions.value.splice(currentIndex, 1, moved);
+    }
+    focusCardId.value = moved.id;
+  }
+  moveSelectionActive.value = false;
+});
+
+// Whether the move finished, or was cancelled with Escape or by starting
+// another selection
+watch(moveSelectionActive, (active: boolean) => {
+  if (!active) {
+    regionToMove.value = null;
+  }
+});
+
 const samplingPreviewMarkers = useMultiMarker(map as MapTypeRef , {
   shape: 'circle',
   color: '#0000ff',
@@ -829,7 +862,7 @@ currentTempoDataService.value.withMetadataCache().then(meta => {
 });
 
 // watch the map and sampler too
-watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length, map, sampler], (newVal) => {
+watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length, () => regions.value.map(r => r.geometryInfo), map, sampler], (newVal) => {
   const tempoDataService = currentTempoDataService.value;
   const show = newVal[0];
   const regs = newVal[1];

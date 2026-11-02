@@ -643,6 +643,10 @@ body:not(.keyboard-focus-only) .v-slider-thumb:focus-visible {
   padding-inline: 8px;
 }
 
+.dataset-controls {
+  padding-bottom: 1.5rem;
+}
+
 :root {
   // font-size: clamp(14px, 1.7vw, 16px);
   // --default-font-size: 1rem; // we don't use this

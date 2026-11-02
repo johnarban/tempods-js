@@ -113,7 +113,7 @@
             <font-awesome-icon
               icon="fa-circle-xmark"
               size="lg"
-              color="#ffcc33"
+              :color="accentColor2"
             />
           </button>
         </div>
@@ -123,7 +123,7 @@
      <v-btn
        @click="showSaveDialog = !showSaveDialog"
        class="save-button"
-       aria-label="Save my progress"
+       aria-label="Save, Load, or Clear Data"
        variant="outlined"
        rounded="lg"
        density="default"
@@ -131,8 +131,11 @@
        elevation="0"
        size="lg"
       >
-        <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="Export current state"></v-tooltip>
-        <v-icon>mdi-file-arrow-up-down</v-icon>
+        <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="Save, Load, or Clear Data"></v-tooltip>
+        <font-awesome-icon
+          icon="fa-floppy-disk"
+          size="lg"
+        />
       </v-btn>
 
       <!-- aria-haspopup, not aria-role: there is no aria-role attribute, and
@@ -143,13 +146,14 @@
           activator="parent"
           >
           <v-list>
-            <v-list-item 
-              tabindex="0"
-              aria-label="See recent changes"
-              @click="showChanges = true"
-              >
-              What's New
-            </v-list-item>
+            <!--
+              <v-list-item
+                tabindex="0"
+                aria-label="See recent changes"
+                @click="showChanges = true"
+                >
+                What's New
+              </v-list-item>
 
             <v-list-item 
               tabindex="0" 
@@ -168,7 +172,14 @@
               >
               User Guide
             </v-list-item>
-            
+            -->
+            <v-list-item 
+              
+              aria-label="Leave Page to Educator Resources"
+              >
+              <a style="font-weight: normal;" tabindex="0"  href="https://bestaqi.sites.cfa.harvard.edu/resources" target="_blank" rel="noopener">Educator Resources<v-icon>mdi-open-in-new</v-icon></a>
+            </v-list-item>
+
             <v-list-item
               tabindex="0"
               aria-label="Show dialog telling about the data"
@@ -178,17 +189,9 @@
             </v-list-item>
             
             <v-list-item 
-              
-              aria-label="Leave Page to Educator Resources"
-              >
-              <a style="font-weight: normal;" tabindex="0"  href="https://www.cosmicds.cfa.harvard.edu/resources/tempo" target="_blank" rel="noopener">Educator Resources<v-icon>mdi-open-in-new</v-icon></a>
-            </v-list-item>
-            
-            <v-list-item 
               tabindex="0" 
               aria-label="Show credits"
               @click="showCredits = true"
-              disabled
               >
                 Credits
             </v-list-item>
@@ -197,16 +200,21 @@
         </v-menu>
       </v-btn>
 
-      <v-dialog
+      <cds-dialog
+        title="Manage Data"
         v-model="showSaveDialog"
-        width="300px"
+        :color="accentColor2"
+        width="400px"
       >
         <save-state
           @load-local="showSaveDialog = false"
           @save-local="showSaveDialog = false"
+          @reset="showSaveDialog = false"
           @error="(type: string, message: string) => reportError(type, message)"
         />
-      </v-dialog>
+      </cds-dialog>
+      
+      <tempo-ds-credits v-model="showCredits" />
 
       <v-snackbar
         v-model="showErrorSnackbar"
@@ -229,6 +237,7 @@ import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 import { useTempoStore } from "@/stores/app";
 import changes from "@/changes";
 import AboutData from "@/components/AboutData.vue";
+import TempoDsCredits from "@/components/TempoDsCredits.vue";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
@@ -236,7 +245,7 @@ import { getIntroTour } from "@/utils/tours";
 
 library.add(faArrowsRotate);
 
-const emit = defineEmits<{
+const _emit = defineEmits<{
   (event: "intro-slide", value: number): void;
   (event: 'layers'): void;
 }>();

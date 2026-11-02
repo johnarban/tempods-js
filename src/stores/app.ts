@@ -12,6 +12,7 @@ import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
 import { useTimezone, type Timezone } from "@/composables/useTimezone";
 import { atleast1d } from "@/utils/atleast1d";
 import { formatSingleRange, rangeForSingleDay } from "@/utils/timeRange";
+import { COLORS } from "@/utils/color";
 
 const createTempoStore = (backend: MappingBackends) => defineStore("tempods", () => {
   const debugMode = ref(false);
@@ -47,12 +48,15 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   // and the dialogs are all in different components. Works the same way
   // focusRegion does: whoever acts on it sets it back to null.
   const focusCardId = ref<string | null>(null);
+  // The id of the region being moved while selectionActive is "move"
+  const regionToMove = ref<string | null>(null);
   const regionOpacity = ref(0.7);
   const regionVisibility = ref(true);
 
   const showFieldOfRegard = ref(false);
   const showRoads = ref(true);
   const showSamplingPreviewMarkers = ref(false);
+  const showRegionActions = ref(false);
   
   const showAdvancedLayers = ref(false);
   const showRGBMode = ref(false);
@@ -428,6 +432,38 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     regions.value.splice(index, 1);
   }
 
+  // The copy gets the next region color, so that it can be told apart from the
+  // original while they overlap, and a name that setRegionName will accept
+  function duplicateRegion(region: UnifiedRegion): UnifiedRegion {
+    const color = COLORS[regionsCreatedCount.value % COLORS.length];
+    regionsCreatedCount.value += 1;
+
+    const names = new Set(regions.value.map(r => r.name));
+    let name = `${region.name} copy`;
+    for (let n = 2; names.has(name); n++) {
+      name = `${region.name} copy ${n}`;
+    }
+
+    const copy = {
+      ...toRaw(region),
+      id: v4(),
+      name,
+      color,
+      defaultColor: color,
+      geometryInfo: { ...toRaw(region.geometryInfo) },
+    } as UnifiedRegion;
+    delete copy.source;
+    addRegion(copy);
+    return copy;
+  }
+
+
+  function startMovingRegion(region: UnifiedRegion) {
+    regionToMove.value = region.id;
+    selectionActive.value = "move";
+  }
+
+
   function registerMap(map: Map) {
     maps.value = [...maps.value, markRaw(map)];
   }
@@ -459,15 +495,17 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     selectionActive,
     focusRegion,
     focusCardId,
+    regionToMove,
     regionOpacity,
     regionVisibility,
 
     showFieldOfRegard,
     showRoads,
     showSamplingPreviewMarkers,
+    showRegionActions,
     showAdvancedLayers,
     showRGBMode,
-
+    
     showAggregationControls,
 
     datasetControlsOpen,
@@ -507,6 +545,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     deleteTimeRange,
     deleteRegion,
     deleteDataset,
+    duplicateRegion,
+    startMovingRegion,
 
     userSelectedLocations,
     userSelectedTimezones,
@@ -586,7 +626,7 @@ export function deserializeTempoStore(value: string, compressed: boolean): State
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "layersLoading", "showLoadingIndicator", "firstLoadDone", "globalWarning", "layerAction", "showTourHint"]);
+const OMIT = new Set(["debugMode", "selectionActive", "regionToMove", "maps", "layersReady", "layersLoading", "showLoadingIndicator", "firstLoadDone", "globalWarning", "layerAction", "showTourHint"]);
 export function serializeTempoStore(store: TempoStore, compress?: boolean): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};
@@ -623,6 +663,39 @@ export function updateStoreFromJSON(store: TempoStore, json: string, compressed:
     }
     store.$patch(state);
     postDeserializeTempoStore(store);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Adds the file's regions, time ranges, and datasets to what is already in the
+// store, and leaves every other setting alone. Anything whose id is already
+// present is skipped: ids key the map layers and the dataset -> region links,
+// so a second copy (e.g. from loading the same file twice) would break both.
+export function mergeStoreFromJSON(store: TempoStore, json: string, compressed: boolean): boolean {
+  try {
+    const state = deserializeTempoStore(json, compressed);
+    const notIn = (existing: { id: string }[]) => {
+      const ids = new Set(existing.map(item => item.id));
+      return (item: { id: string }) => !ids.has(item.id);
+    };
+    const regions = (state.regions ?? []).filter(notIn(store.regions));
+    const timeRanges = (state.timeRanges ?? []).filter(notIn(store.timeRanges));
+    const datasets = (state.datasets ?? []).filter(notIn(store.datasets));
+    store.regions.push(...regions);
+    store.timeRanges.push(...timeRanges);
+    store.datasets.push(...datasets);
+    // Region names and colors come from this count. Adding both counts keeps
+    // the next drawn region's number above any auto-generated name in either set.
+    if (regions.length > 0) {
+      store.regionsCreatedCount += state.regionsCreatedCount ?? 0;
+    }
+    for (const dataset of datasets) {
+      if (dataset.loading) {
+        store.fetchDataForDataset(dataset);
+      }
+    }
     return true;
   } catch (error) {
     return false;

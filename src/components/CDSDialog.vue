@@ -35,7 +35,6 @@
         :color="titleColor"
       >
         <v-toolbar-title class="cds-dialog-v-toolbar-title" :text="title"></v-toolbar-title>
-        <v-spacer></v-spacer>
         <v-btn
           class="cds-dialog-close-icon"
           icon="mdi-close"
